@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: pkm-box-store-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/pkm_box_store?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    username: ${DB_USERNAME:pkm_user}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:validate}
+    properties:
+      hibernate:
+        format_sql: ${HIBERNATE_FORMAT_SQL:true}
+        default_batch_fetch_size: ${HIBERNATE_DEFAULT_BATCH_FETCH_SIZE:100}
+    open-in-view: false
+
+server:
+  port: ${SERVER_PORT:8080}
+
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:true}
+  swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:true}
+    path: /swagger-ui.html
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration-ms: ${JWT_ACCESS_TOKEN_EXPIRATION_MS:3600000}
+  refresh-token-expiration-ms: ${JWT_REFRESH_TOKEN_EXPIRATION_MS:1209600000}
+
+toss:
+  payments:
+    secret-key: ${TOSS_PAYMENTS_SECRET_KEY:}
+    client-key: ${TOSS_PAYMENTS_CLIENT_KEY:}
+
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET:}
+    region: ${AWS_REGION:ap-northeast-2}
+    access-key: ${AWS_ACCESS_KEY_ID:}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:}
+
+logging:
+  level:
+    org.hibernate.SQL: ${LOGGING_LEVEL_HIBERNATE_SQL:debug}
