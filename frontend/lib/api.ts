@@ -3,6 +3,8 @@ import type {
   AdminOrder,
   Cart,
   CartItem,
+  DeliveryAddress,
+  DeliveryAddressRequest,
   LoginResponse,
   MemberResponse,
   Order,
@@ -139,7 +141,27 @@ export const api = {
     return request<void>("/api/cart/items", { method: "DELETE" });
   },
 
-  createOrder(body: { receiverName: string; receiverPhone: string; address: string }) {
+  deliveryAddresses() {
+    return request<DeliveryAddress[]>("/api/me/addresses");
+  },
+
+  createDeliveryAddress(body: DeliveryAddressRequest) {
+    return request<DeliveryAddress>("/api/me/addresses", { method: "POST", body });
+  },
+
+  updateDeliveryAddress(addressId: number, body: DeliveryAddressRequest) {
+    return request<DeliveryAddress>(`/api/me/addresses/${addressId}`, { method: "PATCH", body });
+  },
+
+  deleteDeliveryAddress(addressId: number) {
+    return request<void>(`/api/me/addresses/${addressId}`, { method: "DELETE" });
+  },
+
+  setDefaultDeliveryAddress(addressId: number) {
+    return request<DeliveryAddress>(`/api/me/addresses/${addressId}/default`, { method: "PATCH" });
+  },
+
+  createOrder(body: { receiverName?: string; receiverPhone?: string; address?: string; deliveryAddressId?: number }) {
     return request<Order>("/api/orders", { method: "POST", body });
   },
 

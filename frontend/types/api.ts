@@ -80,6 +80,28 @@ export interface Cart {
   totalPrice: number;
 }
 
+export interface DeliveryAddress {
+  id: number;
+  label: string | null;
+  receiverName: string;
+  receiverPhone: string;
+  zipCode: string;
+  address1: string;
+  address2: string | null;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DeliveryAddressRequest {
+  label?: string | null;
+  receiverName: string;
+  receiverPhone: string;
+  zipCode: string;
+  address1: string;
+  address2?: string | null;
+}
+
 export interface OrderItem {
   id: number;
   productId: number;
