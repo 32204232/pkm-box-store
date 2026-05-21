@@ -17,6 +17,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import com.pkm.store.domain.product.type.ProductStatus;
+import com.pkm.store.global.exception.BusinessException;
+import com.pkm.store.global.exception.ErrorCode;
 
 @Getter
 @Entity
@@ -145,6 +147,19 @@ public class Product {
         this.status = ProductStatus.HIDDEN;
     }
 
+    public void decreaseStock(int quantity) {
+        validateStockChangeQuantity(quantity);
+        if (stockQuantity < quantity) {
+            throw new BusinessException(ErrorCode.OUT_OF_STOCK);
+        }
+        this.stockQuantity -= quantity;
+    }
+
+    public void increaseStock(int quantity) {
+        validateStockChangeQuantity(quantity);
+        this.stockQuantity += quantity;
+    }
+
     private static void validatePrice(BigDecimal price) {
         if (price == null || price.signum() < 0) {
             throw new IllegalArgumentException("상품 가격은 0 이상이어야 합니다.");
@@ -154,6 +169,12 @@ public class Product {
     private static void validateStockQuantity(Integer stockQuantity) {
         if (stockQuantity == null || stockQuantity < 0) {
             throw new IllegalArgumentException("상품 재고는 0 이상이어야 합니다.");
+        }
+    }
+
+    private static void validateStockChangeQuantity(int quantity) {
+        if (quantity < 1) {
+            throw new BusinessException(ErrorCode.OUT_OF_STOCK);
         }
     }
 
