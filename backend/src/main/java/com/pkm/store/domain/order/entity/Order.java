@@ -72,6 +72,16 @@ public class Order {
     @Column(length = 255)
     private String address2;
 
+    @Column(length = 100)
+    private String courierCompany;
+
+    @Column(length = 100)
+    private String trackingNumber;
+
+    private LocalDateTime shippedAt;
+
+    private LocalDateTime deliveredAt;
+
     @Column(nullable = false)
     private LocalDateTime expiresAt;
 
@@ -160,14 +170,35 @@ public class Order {
         this.status = OrderStatus.CANCELED;
     }
 
-    public void changeDeliveryStatus(OrderStatus nextStatus) {
-        if ((status == OrderStatus.PAID && nextStatus == OrderStatus.PREPARING)
-                || (status == OrderStatus.PREPARING && nextStatus == OrderStatus.SHIPPED)
-                || (status == OrderStatus.SHIPPED && nextStatus == OrderStatus.DELIVERED)) {
+    public void changeDeliveryStatus(OrderStatus nextStatus, String courierCompany, String trackingNumber) {
+        if (status == OrderStatus.PAID && nextStatus == OrderStatus.PREPARING) {
+            this.status = nextStatus;
+            return;
+        }
+        if (status == OrderStatus.PREPARING && nextStatus == OrderStatus.SHIPPED) {
+            validateShippingInfo(courierCompany, trackingNumber);
+            this.courierCompany = courierCompany;
+            this.trackingNumber = trackingNumber;
+            this.shippedAt = LocalDateTime.now();
+            this.status = nextStatus;
+            return;
+        }
+        if (status == OrderStatus.SHIPPED && nextStatus == OrderStatus.DELIVERED) {
+            this.deliveredAt = LocalDateTime.now();
             this.status = nextStatus;
             return;
         }
         throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+    }
+
+    private void validateShippingInfo(String courierCompany, String trackingNumber) {
+        if (isBlank(courierCompany) || isBlank(trackingNumber)) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     public boolean isExpired(LocalDateTime now) {

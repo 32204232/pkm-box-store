@@ -94,7 +94,7 @@ public class OrderService {
     public AdminOrderResponse updateAdminOrderStatus(Long orderId, AdminOrderStatusUpdateRequest request) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        order.changeDeliveryStatus(request.status());
+        order.changeDeliveryStatus(request.status(), request.courierCompany(), request.trackingNumber());
         return AdminOrderResponse.from(order);
     }
 

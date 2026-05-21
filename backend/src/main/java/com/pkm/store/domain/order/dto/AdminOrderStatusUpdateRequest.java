@@ -5,6 +5,14 @@ import jakarta.validation.constraints.NotNull;
 
 public record AdminOrderStatusUpdateRequest(
         @NotNull
-        OrderStatus status
+        OrderStatus status,
+
+        String courierCompany,
+
+        String trackingNumber
 ) {
+
+    public AdminOrderStatusUpdateRequest(OrderStatus status) {
+        this(status, null, null);
+    }
 }

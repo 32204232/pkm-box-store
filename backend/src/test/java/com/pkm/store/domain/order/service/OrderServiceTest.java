@@ -430,10 +430,13 @@ class OrderServiceTest {
 
         AdminOrderResponse response = orderService.updateAdminOrderStatus(
                 1L,
-                new AdminOrderStatusUpdateRequest(OrderStatus.SHIPPED)
+                new AdminOrderStatusUpdateRequest(OrderStatus.SHIPPED, "CJ대한통운", "1234567890")
         );
 
         assertThat(response.status()).isEqualTo(OrderStatus.SHIPPED);
+        assertThat(response.courierCompany()).isEqualTo("CJ대한통운");
+        assertThat(response.trackingNumber()).isEqualTo("1234567890");
+        assertThat(response.shippedAt()).isNotNull();
     }
 
     @Test
@@ -447,6 +450,51 @@ class OrderServiceTest {
         );
 
         assertThat(response.status()).isEqualTo(OrderStatus.DELIVERED);
+        assertThat(response.deliveredAt()).isNotNull();
+    }
+
+    @Test
+    void updateAdminOrderStatusFromPreparingToShippedThrowsWhenCourierCompanyIsMissing() {
+        Order order = createOrder(OrderStatus.PREPARING);
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.updateAdminOrderStatus(
+                1L,
+                new AdminOrderStatusUpdateRequest(OrderStatus.SHIPPED, null, "1234567890")
+        )).isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void updateAdminOrderStatusFromPreparingToShippedThrowsWhenTrackingNumberIsMissing() {
+        Order order = createOrder(OrderStatus.PREPARING);
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.updateAdminOrderStatus(
+                1L,
+                new AdminOrderStatusUpdateRequest(OrderStatus.SHIPPED, "CJ대한통운", null)
+        )).isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void updateAdminOrderStatusFromPaymentPendingToShippedThrowsBusinessException() {
+        Order order = createOrder(OrderStatus.PAYMENT_PENDING);
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.updateAdminOrderStatus(
+                1L,
+                new AdminOrderStatusUpdateRequest(OrderStatus.SHIPPED, "CJ대한통운", "1234567890")
+        )).isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void updateAdminOrderStatusFromDeliveredThrowsBusinessException() {
+        Order order = createOrder(OrderStatus.DELIVERED);
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.updateAdminOrderStatus(
+                1L,
+                new AdminOrderStatusUpdateRequest(OrderStatus.SHIPPED, "CJ대한통운", "1234567890")
+        )).isInstanceOf(BusinessException.class);
     }
 
     @Test
