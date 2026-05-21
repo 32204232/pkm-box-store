@@ -1,12 +1,14 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Message } from "@/components/Message";
 import { RequireAuth } from "@/components/RequireAuth";
 import { api, formatPrice } from "@/lib/api";
 import type { Cart } from "@/types/api";
 
 export default function CartPage() {
+  const router = useRouter();
   const [cart, setCart] = useState<Cart | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [receiverName, setReceiverName] = useState("");
@@ -40,8 +42,7 @@ export default function CartPage() {
     setMessage(null);
     try {
       const order = await api.createOrder({ receiverName, receiverPhone, address });
-      setMessage(`주문이 생성되었습니다. 주문번호: ${order.orderUid}`);
-      await loadCart();
+      router.push(`/orders/${order.id}/payment`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "주문 생성 실패");
     }
