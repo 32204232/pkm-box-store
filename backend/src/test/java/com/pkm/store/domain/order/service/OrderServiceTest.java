@@ -10,6 +10,8 @@ import static org.mockito.Mockito.verify;
 
 import com.pkm.store.domain.cart.entity.CartItem;
 import com.pkm.store.domain.cart.repository.CartItemRepository;
+import com.pkm.store.domain.deliveryaddress.entity.DeliveryAddress;
+import com.pkm.store.domain.deliveryaddress.repository.DeliveryAddressRepository;
 import com.pkm.store.domain.inventory.entity.InventoryHistory;
 import com.pkm.store.domain.inventory.repository.InventoryHistoryRepository;
 import com.pkm.store.domain.inventory.service.InventoryService;
@@ -25,8 +27,10 @@ import com.pkm.store.domain.order.entity.OrderItem;
 import com.pkm.store.domain.order.repository.OrderRepository;
 import com.pkm.store.domain.order.type.OrderStatus;
 import com.pkm.store.domain.product.entity.Product;
+import com.pkm.store.domain.product.repository.ProductRepository;
 import com.pkm.store.domain.product.type.ProductStatus;
 import com.pkm.store.global.exception.BusinessException;
+import com.pkm.store.global.exception.ErrorCode;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -60,13 +64,26 @@ class OrderServiceTest {
     @Mock
     private InventoryHistoryRepository inventoryHistoryRepository;
 
+    @Mock
+    private DeliveryAddressRepository deliveryAddressRepository;
+
+    @Mock
+    private ProductRepository productRepository;
+
     private OrderService orderService;
     private Member member;
 
     @BeforeEach
     void setUp() {
         InventoryService inventoryService = new InventoryService(inventoryHistoryRepository);
-        orderService = new OrderService(orderRepository, cartItemRepository, memberRepository, inventoryService);
+        orderService = new OrderService(
+                orderRepository,
+                cartItemRepository,
+                memberRepository,
+                inventoryService,
+                deliveryAddressRepository,
+                productRepository
+        );
         member = Member.create(MEMBER_EMAIL, "encoded-password", "Test Member");
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(MEMBER_EMAIL, null)
@@ -84,6 +101,7 @@ class OrderServiceTest {
         CartItem cartItem = CartItem.create(member, product, 2);
         givenCurrentMember();
         given(cartItemRepository.findAllByMemberOrderByCreatedAtDesc(member)).willReturn(List.of(cartItem));
+        givenLockedProduct(product);
         given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         OrderResponse response = orderService.createOrderFromCart(createRequest());
@@ -101,6 +119,7 @@ class OrderServiceTest {
         CartItem cartItem = CartItem.create(member, product, 3);
         givenCurrentMember();
         given(cartItemRepository.findAllByMemberOrderByCreatedAtDesc(member)).willReturn(List.of(cartItem));
+        givenLockedProduct(product);
         given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         orderService.createOrderFromCart(createRequest());
@@ -114,11 +133,82 @@ class OrderServiceTest {
         CartItem cartItem = CartItem.create(member, product, 1);
         givenCurrentMember();
         given(cartItemRepository.findAllByMemberOrderByCreatedAtDesc(member)).willReturn(List.of(cartItem));
+        givenLockedProduct(product);
         given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         orderService.createOrderFromCart(createRequest());
 
         verify(cartItemRepository).deleteAllByMember(member);
+    }
+
+    @Test
+    void createOrderFromCartSucceedsWithDeliveryAddressId() {
+        Product product = createProduct(ProductStatus.ON_SALE, 10);
+        CartItem cartItem = CartItem.create(member, product, 1);
+        DeliveryAddress address = createDeliveryAddress();
+        givenCurrentMember();
+        given(cartItemRepository.findAllByMemberOrderByCreatedAtDesc(member)).willReturn(List.of(cartItem));
+        given(deliveryAddressRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(address));
+        givenLockedProduct(product);
+        given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        OrderResponse response = orderService.createOrderFromCart(createAddressRequest(1L));
+
+        assertThat(response.receiverName()).isEqualTo("Address Receiver");
+        assertThat(response.receiverPhone()).isEqualTo("010-2222-3333");
+        assertThat(response.zipCode()).isEqualTo("12345");
+        assertThat(response.address1()).isEqualTo("Seoul Address 1");
+        assertThat(response.address2()).isEqualTo("Address 2");
+    }
+
+    @Test
+    void createOrderFromCartStoresDeliveryAddressSnapshot() {
+        Product product = createProduct(ProductStatus.ON_SALE, 10);
+        CartItem cartItem = CartItem.create(member, product, 1);
+        DeliveryAddress address = createDeliveryAddress();
+        givenCurrentMember();
+        given(cartItemRepository.findAllByMemberOrderByCreatedAtDesc(member)).willReturn(List.of(cartItem));
+        given(deliveryAddressRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(address));
+        givenLockedProduct(product);
+        given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        OrderResponse response = orderService.createOrderFromCart(createAddressRequest(1L));
+
+        assertThat(response.address()).isEqualTo("12345 Seoul Address 1 Address 2");
+        assertThat(response.zipCode()).isEqualTo("12345");
+        assertThat(response.address1()).isEqualTo("Seoul Address 1");
+        assertThat(response.address2()).isEqualTo("Address 2");
+    }
+
+    @Test
+    void createOrderFromCartThrowsWhenDeliveryAddressDoesNotBelongToCurrentMember() {
+        Product product = createProduct(ProductStatus.ON_SALE, 10);
+        CartItem cartItem = CartItem.create(member, product, 1);
+        givenCurrentMember();
+        given(cartItemRepository.findAllByMemberOrderByCreatedAtDesc(member)).willReturn(List.of(cartItem));
+        given(deliveryAddressRepository.findByIdAndMember(1L, member)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.createOrderFromCart(createAddressRequest(1L)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.ADDRESS_NOT_FOUND);
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void createOrderFromCartSucceedsWithoutDeliveryAddressId() {
+        Product product = createProduct(ProductStatus.ON_SALE, 10);
+        CartItem cartItem = CartItem.create(member, product, 1);
+        givenCurrentMember();
+        given(cartItemRepository.findAllByMemberOrderByCreatedAtDesc(member)).willReturn(List.of(cartItem));
+        givenLockedProduct(product);
+        given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        OrderResponse response = orderService.createOrderFromCart(createRequest());
+
+        assertThat(response.receiverName()).isEqualTo("Test Member");
+        assertThat(response.receiverPhone()).isEqualTo("010-1234-5678");
+        assertThat(response.address()).isEqualTo("Seoul");
     }
 
     @Test
@@ -136,6 +226,7 @@ class OrderServiceTest {
         CartItem cartItem = CartItem.create(member, product, 2);
         givenCurrentMember();
         given(cartItemRepository.findAllByMemberOrderByCreatedAtDesc(member)).willReturn(List.of(cartItem));
+        givenLockedProduct(product);
 
         assertThatThrownBy(() -> orderService.createOrderFromCart(createRequest()))
                 .isInstanceOf(BusinessException.class);
@@ -148,9 +239,41 @@ class OrderServiceTest {
         CartItem cartItem = CartItem.create(member, product, 1);
         givenCurrentMember();
         given(cartItemRepository.findAllByMemberOrderByCreatedAtDesc(member)).willReturn(List.of(cartItem));
+        givenLockedProduct(product);
 
         assertThatThrownBy(() -> orderService.createOrderFromCart(createRequest()))
                 .isInstanceOf(BusinessException.class);
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void createOrderFromCartUsesPessimisticWriteLockWhenDecreasingStock() {
+        Product product = createProduct(ProductStatus.ON_SALE, 10);
+        CartItem cartItem = CartItem.create(member, product, 2);
+        givenCurrentMember();
+        given(cartItemRepository.findAllByMemberOrderByCreatedAtDesc(member)).willReturn(List.of(cartItem));
+        givenLockedProduct(product);
+        given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        orderService.createOrderFromCart(createRequest());
+
+        verify(productRepository).findByIdWithPessimisticWriteLock(product.getId());
+    }
+
+    @Test
+    void createOrderFromCartThrowsOutOfStockWhenLockedProductStockIsNotEnough() {
+        Product cartProduct = createProduct(ProductStatus.ON_SALE, 10);
+        Product lockedProduct = createProduct(ProductStatus.ON_SALE, 1);
+        ReflectionTestUtils.setField(lockedProduct, "id", cartProduct.getId());
+        CartItem cartItem = CartItem.create(member, cartProduct, 2);
+        givenCurrentMember();
+        given(cartItemRepository.findAllByMemberOrderByCreatedAtDesc(member)).willReturn(List.of(cartItem));
+        givenLockedProduct(lockedProduct);
+
+        assertThatThrownBy(() -> orderService.createOrderFromCart(createRequest()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.OUT_OF_STOCK);
         verify(orderRepository, never()).save(any(Order.class));
     }
 
@@ -352,8 +475,29 @@ class OrderServiceTest {
         given(memberRepository.findByEmail(MEMBER_EMAIL)).willReturn(Optional.of(member));
     }
 
+    private void givenLockedProduct(Product product) {
+        given(productRepository.findByIdWithPessimisticWriteLock(product.getId())).willReturn(Optional.of(product));
+    }
+
     private OrderCreateRequest createRequest() {
-        return new OrderCreateRequest("Test Member", "010-1234-5678", "Seoul");
+        return new OrderCreateRequest("Test Member", "010-1234-5678", "Seoul", null);
+    }
+
+    private OrderCreateRequest createAddressRequest(Long deliveryAddressId) {
+        return new OrderCreateRequest(null, null, null, deliveryAddressId);
+    }
+
+    private DeliveryAddress createDeliveryAddress() {
+        return DeliveryAddress.create(
+                member,
+                "Home",
+                "Address Receiver",
+                "010-2222-3333",
+                "12345",
+                "Seoul Address 1",
+                "Address 2",
+                true
+        );
     }
 
     private Order createExpiredPendingOrder(Product product, int quantity) {
@@ -371,7 +515,7 @@ class OrderServiceTest {
     }
 
     private Product createProduct(ProductStatus status, int stockQuantity) {
-        return Product.create(
+        Product product = Product.create(
                 "Pokemon Card Box",
                 "Korean Pokemon card box",
                 BigDecimal.valueOf(30000),
@@ -382,5 +526,7 @@ class OrderServiceTest {
                 "https://example.com/product.jpg",
                 status
         );
+        ReflectionTestUtils.setField(product, "id", 1L);
+        return product;
     }
 }
