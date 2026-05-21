@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Message } from "@/components/Message";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -57,7 +58,9 @@ export default function AdminOrdersPage() {
             <tbody>
               {orders.map((order) => (
                 <tr key={order.id}>
-                  <td>{order.orderUid}</td>
+                  <td>
+                    <Link href={`/admin/orders/${order.id}`}>{order.orderUid}</Link>
+                  </td>
                   <td>
                     {order.memberName}
                     <br />
