@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.pkm.store.domain.cart.entity.CartItem;
@@ -219,6 +220,47 @@ class OrderServiceTest {
 
         assertThatThrownBy(() -> orderService.expireOrder(1L))
                 .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void expireExpiredPendingOrdersExpiresExpiredOrders() {
+        Order order = createExpiredPendingOrder(createProduct(ProductStatus.ON_SALE, 5), 2);
+        given(orderRepository.findAllByStatusAndExpiresAtBefore(any(OrderStatus.class), any(LocalDateTime.class)))
+                .willReturn(List.of(order));
+        SecurityContextHolder.clearContext();
+
+        orderService.expireExpiredPendingOrders();
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.EXPIRED);
+    }
+
+    @Test
+    void expireExpiredPendingOrdersRestoresStock() {
+        Product product = createProduct(ProductStatus.ON_SALE, 5);
+        Order order = createExpiredPendingOrder(product, 2);
+        given(orderRepository.findAllByStatusAndExpiresAtBefore(any(OrderStatus.class), any(LocalDateTime.class)))
+                .willReturn(List.of(order));
+        SecurityContextHolder.clearContext();
+
+        orderService.expireExpiredPendingOrders();
+
+        assertThat(product.getStockQuantity()).isEqualTo(7);
+    }
+
+    @Test
+    void expireExpiredPendingOrdersContinuesWhenOneOrderFails() {
+        Order failedOrder = createExpiredPendingOrder(createProduct(ProductStatus.ON_SALE, 5), 1);
+        ReflectionTestUtils.setField(failedOrder, "status", OrderStatus.PAID);
+        Order validOrder = createExpiredPendingOrder(createProduct(ProductStatus.ON_SALE, 5), 1);
+        given(orderRepository.findAllByStatusAndExpiresAtBefore(any(OrderStatus.class), any(LocalDateTime.class)))
+                .willReturn(List.of(failedOrder, validOrder));
+        SecurityContextHolder.clearContext();
+
+        orderService.expireExpiredPendingOrders();
+
+        assertThat(failedOrder.getStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(validOrder.getStatus()).isEqualTo(OrderStatus.EXPIRED);
+        verify(inventoryHistoryRepository, times(1)).save(any(InventoryHistory.class));
     }
 
     private void givenCurrentMember() {

@@ -10,10 +10,12 @@ import com.pkm.store.domain.order.dto.OrderResponse;
 import com.pkm.store.domain.order.entity.Order;
 import com.pkm.store.domain.order.entity.OrderItem;
 import com.pkm.store.domain.order.repository.OrderRepository;
+import com.pkm.store.domain.order.type.OrderStatus;
 import com.pkm.store.domain.product.entity.Product;
 import com.pkm.store.domain.product.type.ProductStatus;
 import com.pkm.store.global.exception.BusinessException;
 import com.pkm.store.global.exception.ErrorCode;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -73,6 +75,26 @@ public class OrderService {
         Order order = orderRepository.findByIdAndMember(orderId, member)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
+        expireSingleOrder(order);
+    }
+
+    @Transactional
+    public void expireExpiredPendingOrders() {
+        List<Order> orders = orderRepository.findAllByStatusAndExpiresAtBefore(
+                OrderStatus.PAYMENT_PENDING,
+                LocalDateTime.now()
+        );
+
+        for (Order order : orders) {
+            try {
+                expireSingleOrder(order);
+            } catch (RuntimeException ignored) {
+                // Continue processing other expired orders.
+            }
+        }
+    }
+
+    private void expireSingleOrder(Order order) {
         order.expire();
         order.getOrderItems().forEach(orderItem -> inventoryService.release(
                 orderItem.getProduct(),
