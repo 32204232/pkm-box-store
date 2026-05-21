@@ -432,7 +432,145 @@ Response: `204 No Content`
 - `MEMBER_NOT_FOUND`
 - `401 Unauthorized`
 
-## 5. 주문 API
+## 5. 배송지 API
+
+### 내 배송지 목록 조회
+
+- Method: `GET`
+- URL: `/api/me/addresses`
+- 인증: 회원 필요
+
+Request: 없음
+
+Response:
+
+```json
+[
+  {
+    "id": 1,
+    "label": "집",
+    "receiverName": "홍길동",
+    "receiverPhone": "010-1234-5678",
+    "zipCode": "06123",
+    "address1": "서울시 강남구 테헤란로 1",
+    "address2": "101동 1001호",
+    "isDefault": true,
+    "createdAt": "2026-05-21T09:00:00",
+    "updatedAt": "2026-05-21T09:00:00"
+  }
+]
+```
+
+주요 예외:
+
+- `MEMBER_NOT_FOUND`
+- `401 Unauthorized`
+
+### 배송지 등록
+
+- Method: `POST`
+- URL: `/api/me/addresses`
+- 인증: 회원 필요
+
+Request:
+
+```json
+{
+  "label": "집",
+  "receiverName": "홍길동",
+  "receiverPhone": "010-1234-5678",
+  "zipCode": "06123",
+  "address1": "서울시 강남구 테헤란로 1",
+  "address2": "101동 1001호",
+  "isDefault": true
+}
+```
+
+Response: `201 Created`
+
+```json
+{
+  "id": 1,
+  "label": "집",
+  "receiverName": "홍길동",
+  "receiverPhone": "010-1234-5678",
+  "zipCode": "06123",
+  "address1": "서울시 강남구 테헤란로 1",
+  "address2": "101동 1001호",
+  "isDefault": true,
+  "createdAt": "2026-05-21T09:00:00",
+  "updatedAt": "2026-05-21T09:00:00"
+}
+```
+
+주요 예외:
+
+- `INVALID_REQUEST`
+- `MEMBER_NOT_FOUND`
+- `401 Unauthorized`
+
+### 배송지 수정
+
+- Method: `PATCH`
+- URL: `/api/me/addresses/{addressId}`
+- 인증: 회원 필요
+
+Request:
+
+```json
+{
+  "label": "회사",
+  "receiverName": "홍길동",
+  "receiverPhone": "010-1234-5678",
+  "zipCode": "06123",
+  "address1": "서울시 강남구 테헤란로 2",
+  "address2": "20층",
+  "isDefault": false
+}
+```
+
+Response: 배송지 등록 응답과 동일한 객체 구조
+
+주요 예외:
+
+- `ADDRESS_NOT_FOUND`
+- `INVALID_ADDRESS_REQUEST`
+- `MEMBER_NOT_FOUND`
+- `401 Unauthorized`
+
+### 배송지 삭제
+
+- Method: `DELETE`
+- URL: `/api/me/addresses/{addressId}`
+- 인증: 회원 필요
+
+Request: 없음
+
+Response: `204 No Content`
+
+주요 예외:
+
+- `ADDRESS_NOT_FOUND`
+- `MEMBER_NOT_FOUND`
+- `401 Unauthorized`
+
+### 기본 배송지 설정
+
+- Method: `PATCH`
+- URL: `/api/me/addresses/{addressId}/default`
+- 인증: 회원 필요
+
+Request: 없음
+
+Response: 배송지 등록 응답과 동일한 객체 구조
+
+주요 예외:
+
+- `ADDRESS_NOT_FOUND`
+- `MEMBER_NOT_FOUND`
+- `401 Unauthorized`
+
+## 6. 주문 API
 
 ### 장바구니 기반 주문 생성
 
@@ -446,9 +584,12 @@ Request:
 {
   "receiverName": "홍길동",
   "receiverPhone": "010-1234-5678",
-  "address": "서울시 강남구"
+  "address": "서울시 강남구",
+  "deliveryAddressId": null
 }
 ```
+
+`deliveryAddressId`는 선택 필드이다. 값이 있으면 저장된 배송지를 사용하고, 없으면 `receiverName`, `receiverPhone`, `address`를 직접 입력 배송지로 사용한다.
 
 Response:
 
@@ -460,7 +601,10 @@ Response:
   "totalPrice": 60000,
   "receiverName": "홍길동",
   "receiverPhone": "010-1234-5678",
-  "address": "서울시 강남구",
+  "address": "06123 서울시 강남구 테헤란로 1 101동 1001호",
+  "zipCode": "06123",
+  "address1": "서울시 강남구 테헤란로 1",
+  "address2": "101동 1001호",
   "expiresAt": "2026-05-21T09:30:00",
   "items": [
     {
@@ -480,6 +624,8 @@ Response:
 주요 예외:
 
 - `EMPTY_CART`
+- `ADDRESS_NOT_FOUND`
+- `INVALID_ADDRESS_REQUEST`
 - `ORDER_NOT_ALLOWED`
 - `OUT_OF_STOCK`
 - `MEMBER_NOT_FOUND`
@@ -504,7 +650,10 @@ Response:
     "totalPrice": 60000,
     "receiverName": "홍길동",
     "receiverPhone": "010-1234-5678",
-    "address": "서울시 강남구",
+    "address": "06123 서울시 강남구 테헤란로 1 101동 1001호",
+    "zipCode": "06123",
+    "address1": "서울시 강남구 테헤란로 1",
+    "address2": "101동 1001호",
     "expiresAt": "2026-05-21T09:30:00",
     "items": [],
     "createdAt": "2026-05-21T09:00:00",
@@ -526,7 +675,7 @@ Response:
 
 Request: 없음
 
-Response: 주문 생성 응답과 동일한 구조
+Response: 주문 생성 응답과 동일한 객체 구조
 
 주요 예외:
 
@@ -534,7 +683,7 @@ Response: 주문 생성 응답과 동일한 구조
 - `MEMBER_NOT_FOUND`
 - `401 Unauthorized`
 
-## 6. 결제 API
+## 7. 결제 API
 
 ### 결제 승인
 
@@ -602,7 +751,46 @@ Response: `204 No Content`
 - `MEMBER_NOT_FOUND`
 - `401 Unauthorized`
 
-## 7. 관리자 주문 API
+### 결제 취소/환불
+
+- Method: `POST`
+- URL: `/api/payments/cancel`
+- 인증: 회원 필요
+
+Request:
+
+```json
+{
+  "orderId": 1,
+  "cancelReason": "고객 요청"
+}
+```
+
+Response:
+
+```json
+{
+  "paymentId": 1,
+  "orderId": 1,
+  "provider": "TOSS",
+  "status": "CANCELED",
+  "amount": 60000,
+  "approvedAt": "2026-05-21T09:05:00"
+}
+```
+
+주요 예외:
+
+- `ORDER_NOT_FOUND`
+- `INVALID_ORDER_STATUS`
+- `PAYMENT_NOT_FOUND`
+- `PAYMENT_PROVIDER_NOT_SUPPORTED`
+- `PAYMENT_CANCEL_FAILED`
+- `MEMBER_NOT_FOUND`
+- `INVALID_REQUEST`
+- `401 Unauthorized`
+
+## 8. 관리자 주문 API
 
 ### 전체 주문 목록 조회
 
@@ -626,7 +814,14 @@ Response:
     "totalPrice": 60000,
     "receiverName": "홍길동",
     "receiverPhone": "010-1234-5678",
-    "address": "서울시 강남구",
+    "address": "06123 서울시 강남구 테헤란로 1 101동 1001호",
+    "zipCode": "06123",
+    "address1": "서울시 강남구 테헤란로 1",
+    "address2": "101동 1001호",
+    "courierCompany": null,
+    "trackingNumber": null,
+    "shippedAt": null,
+    "deliveredAt": null,
     "expiresAt": "2026-05-21T09:30:00",
     "items": [],
     "createdAt": "2026-05-21T09:00:00",
@@ -648,7 +843,7 @@ Response:
 
 Request: 없음
 
-Response: 전체 주문 목록의 단일 객체 구조
+Response: 전체 주문 목록 조회의 항목과 동일한 객체 구조
 
 주요 예외:
 
@@ -666,9 +861,13 @@ Request:
 
 ```json
 {
-  "status": "PREPARING"
+  "status": "SHIPPED",
+  "courierCompany": "CJ대한통운",
+  "trackingNumber": "1234567890"
 }
 ```
+
+`courierCompany`, `trackingNumber`는 선택 필드이다. 단, `PREPARING -> SHIPPED` 변경 시에는 두 값이 모두 필요하다.
 
 Response:
 
@@ -679,11 +878,18 @@ Response:
   "memberId": 1,
   "memberEmail": "member@example.com",
   "memberName": "홍길동",
-  "status": "PREPARING",
+  "status": "SHIPPED",
   "totalPrice": 60000,
   "receiverName": "홍길동",
   "receiverPhone": "010-1234-5678",
-  "address": "서울시 강남구",
+  "address": "06123 서울시 강남구 테헤란로 1 101동 1001호",
+  "zipCode": "06123",
+  "address1": "서울시 강남구 테헤란로 1",
+  "address2": "101동 1001호",
+  "courierCompany": "CJ대한통운",
+  "trackingNumber": "1234567890",
+  "shippedAt": "2026-05-21T09:10:00",
+  "deliveredAt": null,
   "expiresAt": "2026-05-21T09:30:00",
   "items": [],
   "createdAt": "2026-05-21T09:00:00",
@@ -701,6 +907,47 @@ Response:
 
 - `ORDER_NOT_FOUND`
 - `INVALID_ORDER_STATUS`
+- `INVALID_REQUEST`
+- `401 Unauthorized`
+- `403 Forbidden`
+
+## 9. 관리자 결제 API
+
+### 관리자 결제 취소/환불
+
+- Method: `POST`
+- URL: `/api/admin/payments/cancel`
+- 인증: 관리자 필요
+
+Request:
+
+```json
+{
+  "orderId": 1,
+  "cancelReason": "관리자 환불 처리"
+}
+```
+
+Response:
+
+```json
+{
+  "paymentId": 1,
+  "orderId": 1,
+  "provider": "TOSS",
+  "status": "CANCELED",
+  "amount": 60000,
+  "approvedAt": "2026-05-21T09:05:00"
+}
+```
+
+주요 예외:
+
+- `ORDER_NOT_FOUND`
+- `INVALID_ORDER_STATUS`
+- `PAYMENT_NOT_FOUND`
+- `PAYMENT_PROVIDER_NOT_SUPPORTED`
+- `PAYMENT_CANCEL_FAILED`
 - `INVALID_REQUEST`
 - `401 Unauthorized`
 - `403 Forbidden`
