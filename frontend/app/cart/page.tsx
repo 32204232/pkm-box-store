@@ -1,20 +1,24 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Message } from "@/components/Message";
 import { RequireAuth } from "@/components/RequireAuth";
 import { api, formatPrice } from "@/lib/api";
-import type { Cart } from "@/types/api";
+import type { Cart, DeliveryAddress } from "@/types/api";
 
 export default function CartPage() {
   const router = useRouter();
   const [cart, setCart] = useState<Cart | null>(null);
+  const [addresses, setAddresses] = useState<DeliveryAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [receiverName, setReceiverName] = useState("");
   const [receiverPhone, setReceiverPhone] = useState("");
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(true);
+  const [addressLoading, setAddressLoading] = useState(true);
   const [updatingItemId, setUpdatingItemId] = useState<number | null>(null);
   const [removingItemId, setRemovingItemId] = useState<number | null>(null);
   const [creatingOrder, setCreatingOrder] = useState(false);
@@ -29,8 +33,22 @@ export default function CartPage() {
     }
   }
 
+  async function loadAddresses() {
+    try {
+      const response = await api.deliveryAddresses();
+      setAddresses(response);
+      const defaultAddress = response.find((item) => item.isDefault);
+      setSelectedAddressId(defaultAddress?.id ?? null);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "배송지 조회 실패");
+    } finally {
+      setAddressLoading(false);
+    }
+  }
+
   useEffect(() => {
     loadCart();
+    loadAddresses();
   }, []);
 
   async function updateQuantity(id: number, quantity: number) {
@@ -76,7 +94,11 @@ export default function CartPage() {
     setCreatingOrder(true);
     setMessage(null);
     try {
-      const order = await api.createOrder({ receiverName, receiverPhone, address });
+      const orderRequest =
+        selectedAddressId !== null
+          ? { deliveryAddressId: selectedAddressId }
+          : { receiverName, receiverPhone, address };
+      const order = await api.createOrder(orderRequest);
       router.push(`/orders/${order.id}/payment`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "주문 생성 실패");
@@ -85,6 +107,7 @@ export default function CartPage() {
   }
 
   const isCartEmpty = !cart || cart.items.length === 0;
+  const selectedAddress = addresses.find((item) => item.id === selectedAddressId);
 
   return (
     <RequireAuth>
@@ -151,6 +174,46 @@ export default function CartPage() {
                   <span>총 금액</span>
                   <strong>{formatPrice(cart?.totalPrice ?? 0)}</strong>
                 </div>
+
+                <label>
+                  저장된 배송지
+                  <select
+                    className="input"
+                    value={selectedAddressId ?? ""}
+                    disabled={addressLoading}
+                    onChange={(event) =>
+                      setSelectedAddressId(event.target.value ? Number(event.target.value) : null)
+                    }
+                  >
+                    <option value="">직접 입력</option>
+                    {addresses.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.label || item.receiverName}
+                        {item.isDefault ? " (기본)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {addressLoading && <div className="alert">배송지를 불러오고 있습니다.</div>}
+                {!addressLoading && addresses.length === 0 && (
+                  <div className="alert">
+                    저장된 배송지가 없습니다.{" "}
+                    <Link href="/my/addresses" className="link">
+                      배송지 관리로 이동
+                    </Link>
+                  </div>
+                )}
+                {selectedAddress && (
+                  <div className="alert">
+                    <strong>{selectedAddress.label || "선택한 배송지"}</strong>
+                    <br />
+                    {selectedAddress.receiverName} / {selectedAddress.receiverPhone}
+                    <br />
+                    [{selectedAddress.zipCode}] {selectedAddress.address1} {selectedAddress.address2 ?? ""}
+                  </div>
+                )}
+
                 <label>
                   수령인
                   <input className="input" value={receiverName} onChange={(event) => setReceiverName(event.target.value)} />
@@ -168,7 +231,7 @@ export default function CartPage() {
                   <textarea className="textarea" value={address} onChange={(event) => setAddress(event.target.value)} />
                 </label>
                 <button className="button primary" disabled={creatingOrder || isCartEmpty}>
-                  주문 생성
+                  {creatingOrder ? "주문 생성 중..." : "주문 생성"}
                 </button>
               </div>
             </form>
