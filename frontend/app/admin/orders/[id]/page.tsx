@@ -27,8 +27,10 @@ export default function AdminOrderDetailPage() {
   const orderId = useMemo(() => Number(params.id), [params.id]);
   const [order, setOrder] = useState<AdminOrder | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [canceling, setCanceling] = useState(false);
 
   async function loadOrder() {
     if (!Number.isInteger(orderId) || orderId <= 0) {
@@ -66,6 +68,25 @@ export default function AdminOrderDetailPage() {
       setMessage(error instanceof Error ? error.message : "주문 상태 변경에 실패했습니다.");
     } finally {
       setUpdating(false);
+    }
+  }
+
+  async function cancelPayment() {
+    if (canceling || !order) {
+      return;
+    }
+
+    setCanceling(true);
+    setMessage(null);
+    try {
+      await api.adminCancelPayment({ orderId: order.id, cancelReason });
+      setOrder(await api.adminOrder(order.id));
+      setCancelReason("");
+      setMessage("결제 취소/환불이 완료되었습니다.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "결제 취소/환불에 실패했습니다.");
+    } finally {
+      setCanceling(false);
     }
   }
 
@@ -193,6 +214,32 @@ export default function AdminOrderDetailPage() {
                 )}
               </div>
             </div>
+
+            {order.status === "PAID" && (
+              <div className="card">
+                <div className="card-body form">
+                  <strong>결제 취소/환불</strong>
+                  <label>
+                    취소 사유
+                    <textarea
+                      className="textarea"
+                      value={cancelReason}
+                      onChange={(event) => setCancelReason(event.target.value)}
+                      placeholder="취소 사유를 입력하세요."
+                      disabled={canceling}
+                    />
+                  </label>
+                  <button
+                    className="button danger"
+                    type="button"
+                    onClick={cancelPayment}
+                    disabled={canceling || cancelReason.trim().length === 0}
+                  >
+                    {canceling ? "취소 처리 중..." : "결제 취소/환불"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

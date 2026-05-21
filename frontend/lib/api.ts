@@ -191,6 +191,10 @@ export const api = {
 
   updateAdminOrderStatus(orderId: number, status: OrderStatus) {
     return request<AdminOrder>(`/api/admin/orders/${orderId}/status`, { method: "PATCH", body: { status } });
+  },
+
+  adminCancelPayment(body: { orderId: number; cancelReason: string }) {
+    return request<PaymentResponse>("/api/admin/payments/cancel", { method: "POST", body });
   }
 };
 
