@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import Image from "next/image";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { Message } from "@/components/Message";
 import { RequireAuth } from "@/components/RequireAuth";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -8,10 +9,13 @@ import { api, formatPrice } from "@/lib/api";
 import type { Product, ProductStatus } from "@/types/api";
 
 const statuses: ProductStatus[] = ["ON_SALE", "SOLD_OUT", "COMING_SOON", "HIDDEN"];
+const allowedImageExtensions = ".jpg,.jpeg,.png,.webp";
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -35,6 +39,29 @@ export default function AdminProductsPage() {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  function selectImage(event: ChangeEvent<HTMLInputElement>) {
+    setSelectedImage(event.target.files?.[0] ?? null);
+  }
+
+  async function uploadImage() {
+    if (!selectedImage) {
+      setMessage("업로드할 이미지 파일을 선택하세요.");
+      return;
+    }
+
+    setUploading(true);
+    setMessage(null);
+    try {
+      const response = await api.uploadImage(selectedImage);
+      setForm((current) => ({ ...current, imageUrl: response.imageUrl }));
+      setMessage("이미지를 업로드했습니다.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "이미지 업로드 실패");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -150,6 +177,14 @@ export default function AdminProductsPage() {
                 />
               </label>
               <label>
+                이미지 파일
+                <input className="input" type="file" accept={allowedImageExtensions} onChange={selectImage} />
+                <span className="muted">허용 확장자: jpg, jpeg, png, webp</span>
+              </label>
+              <button className="button" type="button" onClick={uploadImage} disabled={uploading || !selectedImage}>
+                {uploading ? "업로드 중..." : "이미지 업로드"}
+              </button>
+              <label>
                 이미지 URL
                 <input
                   className="input"
@@ -157,6 +192,11 @@ export default function AdminProductsPage() {
                   onChange={(event) => setForm({ ...form, imageUrl: event.target.value })}
                 />
               </label>
+              {form.imageUrl && (
+                <div className="product-image">
+                  <Image src={form.imageUrl} alt="상품 이미지 미리보기" fill sizes="320px" unoptimized />
+                </div>
+              )}
               <label>
                 상태
                 <select
