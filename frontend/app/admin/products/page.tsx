@@ -11,34 +11,67 @@ import type { Product, ProductStatus } from "@/types/api";
 const statuses: ProductStatus[] = ["ON_SALE", "SOLD_OUT", "COMING_SOON", "HIDDEN"];
 const allowedImageExtensions = ".jpg,.jpeg,.png,.webp";
 
+const emptyForm = {
+  name: "",
+  description: "",
+  price: 0,
+  category: "",
+  series: "",
+  releaseDate: "",
+  stockQuantity: 0,
+  imageUrl: "",
+  status: "ON_SALE" as ProductStatus
+};
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    price: 0,
-    category: "",
-    series: "",
-    releaseDate: "",
-    stockQuantity: 0,
-    imageUrl: "",
-    status: "ON_SALE" as ProductStatus
-  });
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  const [form, setForm] = useState(emptyForm);
+
+  const isEditMode = editingProductId !== null;
 
   async function loadProducts() {
     try {
       setProducts(await api.products());
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "상품 조회 실패");
+      setMessage(error instanceof Error ? error.message : "상품 조회에 실패했습니다.");
     }
   }
 
   useEffect(() => {
     loadProducts();
   }, []);
+
+  function resetForm() {
+    setForm(emptyForm);
+    setSelectedImage(null);
+    setEditingProductId(null);
+  }
+
+  function startEdit(product: Product) {
+    setEditingProductId(product.id);
+    setSelectedImage(null);
+    setMessage(null);
+    setForm({
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      category: product.category,
+      series: product.series,
+      releaseDate: product.releaseDate ?? "",
+      stockQuantity: product.stockQuantity,
+      imageUrl: product.imageUrl ?? "",
+      status: product.status
+    });
+  }
+
+  function cancelEdit() {
+    resetForm();
+    setMessage("수정을 취소했습니다.");
+  }
 
   function selectImage(event: ChangeEvent<HTMLInputElement>) {
     setSelectedImage(event.target.files?.[0] ?? null);
@@ -57,7 +90,7 @@ export default function AdminProductsPage() {
       setForm((current) => ({ ...current, imageUrl: response.imageUrl }));
       setMessage("이미지를 업로드했습니다.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "이미지 업로드 실패");
+      setMessage(error instanceof Error ? error.message : "이미지 업로드에 실패했습니다.");
     } finally {
       setUploading(false);
     }
@@ -66,22 +99,35 @@ export default function AdminProductsPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
+
+    const body = {
+      ...form,
+      releaseDate: form.releaseDate || null,
+      imageUrl: form.imageUrl || null
+    };
+
     try {
-      await api.createProduct({
-        ...form,
-        releaseDate: form.releaseDate || null,
-        imageUrl: form.imageUrl || null
-      });
-      setMessage("상품을 등록했습니다.");
+      if (editingProductId !== null) {
+        await api.updateProduct(editingProductId, body);
+        setMessage("상품 수정을 저장했습니다.");
+      } else {
+        await api.createProduct(body);
+        setMessage("상품을 등록했습니다.");
+      }
+      resetForm();
       await loadProducts();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "상품 등록 실패");
+      setMessage(error instanceof Error ? error.message : isEditMode ? "상품 수정에 실패했습니다." : "상품 등록에 실패했습니다.");
     }
   }
 
   async function hideProduct(id: number) {
-    await api.hideProduct(id);
-    await loadProducts();
+    try {
+      await api.hideProduct(id);
+      await loadProducts();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "상품 숨김 처리에 실패했습니다.");
+    }
   }
 
   return (
@@ -113,9 +159,14 @@ export default function AdminProductsPage() {
                     <td>{formatPrice(product.price)}</td>
                     <td>{product.stockQuantity}</td>
                     <td>
-                      <button className="button danger" onClick={() => hideProduct(product.id)}>
-                        숨김
-                      </button>
+                      <div className="action-group">
+                        <button className="button" type="button" onClick={() => startEdit(product)}>
+                          수정
+                        </button>
+                        <button className="button danger" type="button" onClick={() => hideProduct(product.id)}>
+                          숨김
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -124,7 +175,14 @@ export default function AdminProductsPage() {
           </div>
           <form className="card" onSubmit={submit}>
             <div className="card-body form">
-              <strong>상품 등록</strong>
+              <div className="row">
+                <strong>{isEditMode ? "상품 수정" : "상품 등록"}</strong>
+                {isEditMode && (
+                  <button className="button" type="button" onClick={cancelEdit}>
+                    수정 취소
+                  </button>
+                )}
+              </div>
               <label>
                 상품명
                 <input className="input" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
@@ -209,7 +267,7 @@ export default function AdminProductsPage() {
                   ))}
                 </select>
               </label>
-              <button className="button primary">등록</button>
+              <button className="button primary">{isEditMode ? "수정 저장" : "등록"}</button>
             </div>
           </form>
         </div>

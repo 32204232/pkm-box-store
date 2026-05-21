@@ -205,6 +205,12 @@ select {
   opacity: 0.55;
 }
 
+.action-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .form {
   display: grid;
   gap: 14px;
