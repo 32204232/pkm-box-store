@@ -1,5 +1,6 @@
 "use client";
 
+import { ANONYMOUS, loadTossPayments } from "@tosspayments/tosspayments-sdk";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Message } from "@/components/Message";
@@ -8,11 +9,21 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { api, formatPrice } from "@/lib/api";
 import type { Order } from "@/types/api";
 
+const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
+
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
     dateStyle: "medium",
     timeStyle: "short"
   }).format(new Date(value));
+}
+
+function getOrderName(order: Order) {
+  const [firstItem] = order.items;
+  const firstName = firstItem?.productNameSnapshot ?? "주문 상품";
+  const otherCount = order.items.length - 1;
+
+  return otherCount > 0 ? `${firstName} 외 ${otherCount}개` : firstName;
 }
 
 export default function OrderPaymentPage() {
@@ -22,6 +33,7 @@ export default function OrderPaymentPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
   const [canceling, setCanceling] = useState(false);
 
   useEffect(() => {
@@ -40,8 +52,45 @@ export default function OrderPaymentPage() {
       .finally(() => setLoading(false));
   }, [orderId]);
 
-  function startPayment() {
-    setMessage("TODO: Toss SDK 결제 연동 예정입니다.");
+  async function startPayment() {
+    if (!order) {
+      return;
+    }
+
+    if (!TOSS_CLIENT_KEY) {
+      setMessage("Toss Payments 클라이언트 키가 설정되지 않았습니다.");
+      return;
+    }
+
+    setPaying(true);
+    setMessage("Toss Payments 결제창을 여는 중입니다.");
+
+    try {
+      const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
+      const payment = tossPayments.payment({ customerKey: ANONYMOUS });
+
+      await payment.requestPayment({
+        method: "CARD",
+        amount: {
+          currency: "KRW",
+          value: order.totalPrice
+        },
+        orderId: String(order.id),
+        orderName: getOrderName(order),
+        customerName: order.receiverName,
+        successUrl: `${window.location.origin}/payments/success?orderId=${order.id}`,
+        failUrl: `${window.location.origin}/payments/fail?orderId=${order.id}`,
+        card: {
+          flowMode: "DEFAULT",
+          useEscrow: false,
+          useCardPoint: false,
+          useAppCardOnly: false
+        }
+      });
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "결제창 호출에 실패했습니다.");
+      setPaying(false);
+    }
   }
 
   async function cancelPayment() {
@@ -142,10 +191,10 @@ export default function OrderPaymentPage() {
 
             {order.status === "PAYMENT_PENDING" && (
               <div className="action-group">
-                <button className="button primary" type="button" onClick={startPayment}>
+                <button className="button primary" type="button" onClick={startPayment} disabled={paying || canceling}>
                   결제하기
                 </button>
-                <button className="button danger" type="button" onClick={cancelPayment} disabled={canceling}>
+                <button className="button danger" type="button" onClick={cancelPayment} disabled={paying || canceling}>
                   결제 취소
                 </button>
               </div>
