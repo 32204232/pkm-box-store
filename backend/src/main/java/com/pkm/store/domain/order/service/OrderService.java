@@ -5,6 +5,8 @@ import com.pkm.store.domain.cart.repository.CartItemRepository;
 import com.pkm.store.domain.inventory.service.InventoryService;
 import com.pkm.store.domain.member.entity.Member;
 import com.pkm.store.domain.member.repository.MemberRepository;
+import com.pkm.store.domain.order.dto.AdminOrderResponse;
+import com.pkm.store.domain.order.dto.AdminOrderStatusUpdateRequest;
 import com.pkm.store.domain.order.dto.OrderCreateRequest;
 import com.pkm.store.domain.order.dto.OrderResponse;
 import com.pkm.store.domain.order.entity.Order;
@@ -67,6 +69,27 @@ public class OrderService {
         Order order = orderRepository.findByIdAndMember(orderId, member)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
         return OrderResponse.from(order);
+    }
+
+    public List<AdminOrderResponse> getAdminOrders() {
+        return orderRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(AdminOrderResponse::from)
+                .toList();
+    }
+
+    public AdminOrderResponse getAdminOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        return AdminOrderResponse.from(order);
+    }
+
+    @Transactional
+    public AdminOrderResponse updateAdminOrderStatus(Long orderId, AdminOrderStatusUpdateRequest request) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        order.changeDeliveryStatus(request.status());
+        return AdminOrderResponse.from(order);
     }
 
     @Transactional

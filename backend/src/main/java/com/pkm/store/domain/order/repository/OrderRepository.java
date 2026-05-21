@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
+    List<Order> findAllByOrderByCreatedAtDesc();
+
     List<Order> findAllByMemberOrderByCreatedAtDesc(Member member);
 
     Optional<Order> findByIdAndMember(Long id, Member member);

@@ -121,6 +121,16 @@ public class Order {
         this.status = OrderStatus.FAILED;
     }
 
+    public void changeDeliveryStatus(OrderStatus nextStatus) {
+        if ((status == OrderStatus.PAID && nextStatus == OrderStatus.PREPARING)
+                || (status == OrderStatus.PREPARING && nextStatus == OrderStatus.SHIPPED)
+                || (status == OrderStatus.SHIPPED && nextStatus == OrderStatus.DELIVERED)) {
+            this.status = nextStatus;
+            return;
+        }
+        throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+    }
+
     public boolean isExpired(LocalDateTime now) {
         return !expiresAt.isAfter(now);
     }

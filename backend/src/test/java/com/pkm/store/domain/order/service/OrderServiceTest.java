@@ -16,6 +16,8 @@ import com.pkm.store.domain.inventory.service.InventoryService;
 import com.pkm.store.domain.inventory.type.InventoryHistoryType;
 import com.pkm.store.domain.member.entity.Member;
 import com.pkm.store.domain.member.repository.MemberRepository;
+import com.pkm.store.domain.order.dto.AdminOrderResponse;
+import com.pkm.store.domain.order.dto.AdminOrderStatusUpdateRequest;
 import com.pkm.store.domain.order.dto.OrderCreateRequest;
 import com.pkm.store.domain.order.dto.OrderResponse;
 import com.pkm.store.domain.order.entity.Order;
@@ -263,6 +265,89 @@ class OrderServiceTest {
         verify(inventoryHistoryRepository, times(1)).save(any(InventoryHistory.class));
     }
 
+    @Test
+    void getAdminOrdersSucceeds() {
+        Order order = createOrder(OrderStatus.PAID);
+        given(orderRepository.findAllByOrderByCreatedAtDesc()).willReturn(List.of(order));
+
+        List<AdminOrderResponse> responses = orderService.getAdminOrders();
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).status()).isEqualTo(OrderStatus.PAID);
+    }
+
+    @Test
+    void getAdminOrderSucceeds() {
+        Order order = createOrder(OrderStatus.PAID);
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+        AdminOrderResponse response = orderService.getAdminOrder(1L);
+
+        assertThat(response.status()).isEqualTo(OrderStatus.PAID);
+        assertThat(response.memberEmail()).isEqualTo(MEMBER_EMAIL);
+    }
+
+    @Test
+    void updateAdminOrderStatusFromPaidToPreparingSucceeds() {
+        Order order = createOrder(OrderStatus.PAID);
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+        AdminOrderResponse response = orderService.updateAdminOrderStatus(
+                1L,
+                new AdminOrderStatusUpdateRequest(OrderStatus.PREPARING)
+        );
+
+        assertThat(response.status()).isEqualTo(OrderStatus.PREPARING);
+    }
+
+    @Test
+    void updateAdminOrderStatusFromPreparingToShippedSucceeds() {
+        Order order = createOrder(OrderStatus.PREPARING);
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+        AdminOrderResponse response = orderService.updateAdminOrderStatus(
+                1L,
+                new AdminOrderStatusUpdateRequest(OrderStatus.SHIPPED)
+        );
+
+        assertThat(response.status()).isEqualTo(OrderStatus.SHIPPED);
+    }
+
+    @Test
+    void updateAdminOrderStatusFromShippedToDeliveredSucceeds() {
+        Order order = createOrder(OrderStatus.SHIPPED);
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+        AdminOrderResponse response = orderService.updateAdminOrderStatus(
+                1L,
+                new AdminOrderStatusUpdateRequest(OrderStatus.DELIVERED)
+        );
+
+        assertThat(response.status()).isEqualTo(OrderStatus.DELIVERED);
+    }
+
+    @Test
+    void updateAdminOrderStatusFromPaymentPendingToPreparingThrowsBusinessException() {
+        Order order = createOrder(OrderStatus.PAYMENT_PENDING);
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.updateAdminOrderStatus(
+                1L,
+                new AdminOrderStatusUpdateRequest(OrderStatus.PREPARING)
+        )).isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void updateAdminOrderStatusFromFailedToPreparingThrowsBusinessException() {
+        Order order = createOrder(OrderStatus.FAILED);
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.updateAdminOrderStatus(
+                1L,
+                new AdminOrderStatusUpdateRequest(OrderStatus.PREPARING)
+        )).isInstanceOf(BusinessException.class);
+    }
+
     private void givenCurrentMember() {
         given(memberRepository.findByEmail(MEMBER_EMAIL)).willReturn(Optional.of(member));
     }
@@ -275,6 +360,13 @@ class OrderServiceTest {
         Order order = Order.create(member, "Test Member", "010-1234-5678", "Seoul");
         order.addOrderItem(OrderItem.create(product, quantity));
         ReflectionTestUtils.setField(order, "expiresAt", LocalDateTime.now().minusMinutes(1));
+        return order;
+    }
+
+    private Order createOrder(OrderStatus status) {
+        Order order = Order.create(member, "Test Member", "010-1234-5678", "Seoul");
+        order.addOrderItem(OrderItem.create(createProduct(ProductStatus.ON_SALE, 5), 1));
+        ReflectionTestUtils.setField(order, "status", status);
         return order;
     }
 
