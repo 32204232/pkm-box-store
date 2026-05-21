@@ -114,6 +114,13 @@ public class Order {
         this.status = OrderStatus.PAID;
     }
 
+    public void failPayment() {
+        if (status != OrderStatus.PAYMENT_PENDING) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+        this.status = OrderStatus.FAILED;
+    }
+
     public boolean isExpired(LocalDateTime now) {
         return !expiresAt.isAfter(now);
     }

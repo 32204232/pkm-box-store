@@ -1,6 +1,7 @@
 package com.pkm.store.domain.payment.controller;
 
 import com.pkm.store.domain.payment.dto.PaymentConfirmRequest;
+import com.pkm.store.domain.payment.dto.PaymentFailRequest;
 import com.pkm.store.domain.payment.dto.PaymentResponse;
 import com.pkm.store.domain.payment.service.PaymentService;
 import jakarta.validation.Valid;
@@ -21,5 +22,11 @@ public class PaymentController {
     @PostMapping("/confirm")
     public ResponseEntity<PaymentResponse> confirmPayment(@Valid @RequestBody PaymentConfirmRequest request) {
         return ResponseEntity.ok(paymentService.confirmPayment(request));
+    }
+
+    @PostMapping("/fail")
+    public ResponseEntity<Void> failPayment(@Valid @RequestBody PaymentFailRequest request) {
+        paymentService.failPayment(request);
+        return ResponseEntity.noContent().build();
     }
 }

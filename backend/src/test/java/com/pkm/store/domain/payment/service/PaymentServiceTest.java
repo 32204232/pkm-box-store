@@ -22,6 +22,7 @@ import com.pkm.store.domain.payment.client.PaymentApproveResponse;
 import com.pkm.store.domain.payment.client.PaymentClient;
 import com.pkm.store.domain.payment.client.PaymentClientResolver;
 import com.pkm.store.domain.payment.dto.PaymentConfirmRequest;
+import com.pkm.store.domain.payment.dto.PaymentFailRequest;
 import com.pkm.store.domain.payment.dto.PaymentResponse;
 import com.pkm.store.domain.payment.entity.Payment;
 import com.pkm.store.domain.payment.repository.PaymentRepository;
@@ -213,6 +214,73 @@ class PaymentServiceTest {
         assertThatThrownBy(() -> paymentService.confirmPayment(createRequest(order, BigDecimal.valueOf(30000))))
                 .isInstanceOf(BusinessException.class);
         verify(paymentClient, never()).approve(any(PaymentApproveCommand.class));
+    }
+
+    @Test
+    void failPaymentSucceedsWhenOrderIsPaymentPending() {
+        Order order = createOrder(OrderStatus.PAYMENT_PENDING);
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+
+        paymentService.failPayment(new PaymentFailRequest(1L));
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.FAILED);
+    }
+
+    @Test
+    void failPaymentRestoresStock() {
+        Order order = createOrder(OrderStatus.PAYMENT_PENDING);
+        Product product = order.getOrderItems().get(0).getProduct();
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+
+        paymentService.failPayment(new PaymentFailRequest(1L));
+
+        assertThat(product.getStockQuantity()).isEqualTo(11);
+    }
+
+    @Test
+    void failPaymentSavesReleasedInventoryHistory() {
+        Order order = createOrder(OrderStatus.PAYMENT_PENDING);
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+        ArgumentCaptor<InventoryHistory> captor = ArgumentCaptor.forClass(InventoryHistory.class);
+
+        paymentService.failPayment(new PaymentFailRequest(1L));
+
+        verify(inventoryHistoryRepository).save(captor.capture());
+        assertThat(captor.getValue().getType()).isEqualTo(InventoryHistoryType.RELEASED);
+        assertThat(captor.getValue().getQuantity()).isEqualTo(1);
+        assertThat(captor.getValue().getReason()).isEqualTo("PAYMENT_FAILED");
+    }
+
+    @Test
+    void failPaymentThrowsBusinessExceptionWhenOrderIsPaid() {
+        Order order = createOrder(OrderStatus.PAID);
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> paymentService.failPayment(new PaymentFailRequest(1L)))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void failPaymentThrowsBusinessExceptionWhenOrderIsExpired() {
+        Order order = createOrder(OrderStatus.EXPIRED);
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> paymentService.failPayment(new PaymentFailRequest(1L)))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void failPaymentThrowsBusinessExceptionWhenOrderDoesNotBelongToCurrentMember() {
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> paymentService.failPayment(new PaymentFailRequest(1L)))
+                .isInstanceOf(BusinessException.class);
     }
 
     private void givenConfirmSuccess(Order order) {

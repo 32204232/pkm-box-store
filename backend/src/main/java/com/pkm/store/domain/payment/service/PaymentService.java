@@ -11,6 +11,7 @@ import com.pkm.store.domain.payment.client.PaymentApproveResponse;
 import com.pkm.store.domain.payment.client.PaymentClient;
 import com.pkm.store.domain.payment.client.PaymentClientResolver;
 import com.pkm.store.domain.payment.dto.PaymentConfirmRequest;
+import com.pkm.store.domain.payment.dto.PaymentFailRequest;
 import com.pkm.store.domain.payment.dto.PaymentResponse;
 import com.pkm.store.domain.payment.entity.Payment;
 import com.pkm.store.domain.payment.repository.PaymentRepository;
@@ -69,6 +70,20 @@ public class PaymentService {
         ));
 
         return PaymentResponse.from(paymentRepository.save(payment));
+    }
+
+    @Transactional
+    public void failPayment(PaymentFailRequest request) {
+        Member member = getCurrentMember();
+        Order order = orderRepository.findByIdAndMember(request.orderId(), member)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+
+        order.failPayment();
+        order.getOrderItems().forEach(orderItem -> inventoryService.release(
+                orderItem.getProduct(),
+                orderItem.getQuantity(),
+                "PAYMENT_FAILED"
+        ));
     }
 
     private void validateOrderCanBePaid(Order order) {
