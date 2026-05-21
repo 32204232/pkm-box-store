@@ -7,6 +7,8 @@ import { Message } from "@/components/Message";
 import { RequireAuth } from "@/components/RequireAuth";
 import { api } from "@/lib/api";
 
+const failRequests = new Map<string, Promise<string>>();
+
 export function PaymentFailContent() {
   const searchParams = useSearchParams();
   const [message, setMessage] = useState<string | null>(null);
@@ -23,12 +25,21 @@ export function PaymentFailContent() {
     const orderId = Number(orderIdParam);
     const tossMessage = searchParams.get("message");
 
-    async function failPayment() {
-      try {
+    const requestKey = Number.isInteger(orderId) && orderId > 0 ? String(orderId) : `no-order:${tossMessage ?? ""}`;
+    const failRequest =
+      failRequests.get(requestKey) ??
+      (async () => {
         if (Number.isInteger(orderId) && orderId > 0) {
           await api.failPayment(orderId);
         }
-        setMessage(tossMessage ? decodeURIComponent(tossMessage) : "결제가 실패했거나 취소되었습니다.");
+        return tossMessage ? decodeURIComponent(tossMessage) : "결제가 실패했거나 취소되었습니다.";
+      })();
+
+    failRequests.set(requestKey, failRequest);
+
+    async function failPayment() {
+      try {
+        setMessage(await failRequest);
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "결제 실패 처리에 실패했습니다.");
       } finally {

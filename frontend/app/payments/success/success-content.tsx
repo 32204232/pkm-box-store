@@ -8,6 +8,8 @@ import { RequireAuth } from "@/components/RequireAuth";
 import { api, formatPrice } from "@/lib/api";
 import type { PaymentResponse } from "@/types/api";
 
+const confirmRequests = new Map<string, Promise<PaymentResponse>>();
+
 export function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const [message, setMessage] = useState<string | null>(null);
@@ -35,16 +37,25 @@ export function PaymentSuccessContent() {
 
     const confirmedPaymentKey = paymentKey;
 
-    async function confirmPayment() {
-      try {
+    const requestKey = `${orderId}:${confirmedPaymentKey}:${amount}`;
+    const confirmRequest =
+      confirmRequests.get(requestKey) ??
+      (async () => {
         const order = await api.order(orderId);
-        const response = await api.confirmPayment({
+        return api.confirmPayment({
           orderId,
           provider: "TOSS",
           paymentKey: confirmedPaymentKey,
           providerOrderId: order.orderUid,
           amount
         });
+      })();
+
+    confirmRequests.set(requestKey, confirmRequest);
+
+    async function confirmPayment() {
+      try {
+        const response = await confirmRequest;
         setPayment(response);
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "결제 승인에 실패했습니다.");
