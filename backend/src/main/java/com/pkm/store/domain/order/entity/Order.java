@@ -63,6 +63,15 @@ public class Order {
     @Column(nullable = false, length = 500)
     private String address;
 
+    @Column(length = 20)
+    private String zipCode;
+
+    @Column(length = 255)
+    private String address1;
+
+    @Column(length = 255)
+    private String address2;
+
     @Column(nullable = false)
     private LocalDateTime expiresAt;
 
@@ -75,7 +84,15 @@ public class Order {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    private Order(Member member, String receiverName, String receiverPhone, String address) {
+    private Order(
+            Member member,
+            String receiverName,
+            String receiverPhone,
+            String address,
+            String zipCode,
+            String address1,
+            String address2
+    ) {
         LocalDateTime now = LocalDateTime.now();
         this.orderUid = UUID.randomUUID().toString();
         this.member = member;
@@ -84,11 +101,26 @@ public class Order {
         this.receiverName = receiverName;
         this.receiverPhone = receiverPhone;
         this.address = address;
+        this.zipCode = zipCode;
+        this.address1 = address1;
+        this.address2 = address2;
         this.expiresAt = now.plusMinutes(PAYMENT_EXPIRATION_MINUTES);
     }
 
     public static Order create(Member member, String receiverName, String receiverPhone, String address) {
-        return new Order(member, receiverName, receiverPhone, address);
+        return new Order(member, receiverName, receiverPhone, address, null, address, null);
+    }
+
+    public static Order create(
+            Member member,
+            String receiverName,
+            String receiverPhone,
+            String address,
+            String zipCode,
+            String address1,
+            String address2
+    ) {
+        return new Order(member, receiverName, receiverPhone, address, zipCode, address1, address2);
     }
 
     public void addOrderItem(OrderItem orderItem) {
@@ -119,6 +151,13 @@ public class Order {
             throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
         }
         this.status = OrderStatus.FAILED;
+    }
+
+    public void cancelAfterPayment() {
+        if (status != OrderStatus.PAID) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+        this.status = OrderStatus.CANCELED;
     }
 
     public void changeDeliveryStatus(OrderStatus nextStatus) {

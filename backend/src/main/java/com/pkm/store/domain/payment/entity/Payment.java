@@ -3,6 +3,8 @@ package com.pkm.store.domain.payment.entity;
 import com.pkm.store.domain.order.entity.Order;
 import com.pkm.store.domain.payment.type.PaymentProvider;
 import com.pkm.store.domain.payment.type.PaymentStatus;
+import com.pkm.store.global.exception.BusinessException;
+import com.pkm.store.global.exception.ErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -94,6 +96,13 @@ public class Payment {
             LocalDateTime approvedAt
     ) {
         return new Payment(order, provider, paymentKey, providerOrderId, amount, approvedAt);
+    }
+
+    public void cancel() {
+        if (status != PaymentStatus.APPROVED) {
+            throw new BusinessException(ErrorCode.INVALID_PAYMENT_STATUS);
+        }
+        this.status = PaymentStatus.CANCELED;
     }
 
     @PrePersist

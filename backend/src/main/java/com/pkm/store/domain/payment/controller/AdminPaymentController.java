@@ -1,8 +1,6 @@
 package com.pkm.store.domain.payment.controller;
 
-import com.pkm.store.domain.payment.dto.PaymentConfirmRequest;
 import com.pkm.store.domain.payment.dto.PaymentCancelRequest;
-import com.pkm.store.domain.payment.dto.PaymentFailRequest;
 import com.pkm.store.domain.payment.dto.PaymentResponse;
 import com.pkm.store.domain.payment.service.PaymentService;
 import jakarta.validation.Valid;
@@ -15,24 +13,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/payments")
-public class PaymentController {
+@RequestMapping("/api/admin/payments")
+public class AdminPaymentController {
 
     private final PaymentService paymentService;
 
-    @PostMapping("/confirm")
-    public ResponseEntity<PaymentResponse> confirmPayment(@Valid @RequestBody PaymentConfirmRequest request) {
-        return ResponseEntity.ok(paymentService.confirmPayment(request));
-    }
-
-    @PostMapping("/fail")
-    public ResponseEntity<Void> failPayment(@Valid @RequestBody PaymentFailRequest request) {
-        paymentService.failPayment(request);
-        return ResponseEntity.noContent().build();
-    }
-
     @PostMapping("/cancel")
     public ResponseEntity<PaymentResponse> cancelPayment(@Valid @RequestBody PaymentCancelRequest request) {
-        return ResponseEntity.ok(paymentService.cancelPayment(request.orderId(), request.cancelReason()));
+        return ResponseEntity.ok(paymentService.cancelPaymentByAdmin(request.orderId(), request.cancelReason()));
     }
 }

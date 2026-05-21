@@ -8,6 +8,8 @@ import com.pkm.store.domain.order.repository.OrderRepository;
 import com.pkm.store.domain.order.type.OrderStatus;
 import com.pkm.store.domain.payment.client.PaymentApproveCommand;
 import com.pkm.store.domain.payment.client.PaymentApproveResponse;
+import com.pkm.store.domain.payment.client.PaymentCancelCommand;
+import com.pkm.store.domain.payment.client.PaymentCancelResponse;
 import com.pkm.store.domain.payment.client.PaymentClient;
 import com.pkm.store.domain.payment.client.PaymentClientResolver;
 import com.pkm.store.domain.payment.dto.PaymentConfirmRequest;
@@ -15,6 +17,7 @@ import com.pkm.store.domain.payment.dto.PaymentFailRequest;
 import com.pkm.store.domain.payment.dto.PaymentResponse;
 import com.pkm.store.domain.payment.entity.Payment;
 import com.pkm.store.domain.payment.repository.PaymentRepository;
+import com.pkm.store.domain.payment.type.PaymentStatus;
 import com.pkm.store.global.exception.BusinessException;
 import com.pkm.store.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -86,8 +89,55 @@ public class PaymentService {
         ));
     }
 
+    @Transactional
+    public PaymentResponse cancelPayment(Long orderId, String cancelReason) {
+        Member member = getCurrentMember();
+        Order order = orderRepository.findByIdAndMember(orderId, member)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+
+        return cancelPaidOrder(order, cancelReason);
+    }
+
+    @Transactional
+    public PaymentResponse cancelPaymentByAdmin(Long orderId, String cancelReason) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+
+        return cancelPaidOrder(order, cancelReason);
+    }
+
+    private PaymentResponse cancelPaidOrder(Order order, String cancelReason) {
+        validateOrderCanBeCanceled(order);
+        Payment payment = paymentRepository.findByOrderAndStatus(order, PaymentStatus.APPROVED)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        PaymentClient paymentClient = paymentClientResolver.resolve(payment.getProvider());
+        PaymentCancelResponse cancelResponse = paymentClient.cancel(new PaymentCancelCommand(
+                payment.getPaymentKey(),
+                cancelReason,
+                payment.getAmount()
+        ));
+        validateCancelResponseAmount(payment, cancelResponse);
+
+        payment.cancel();
+        order.cancelAfterPayment();
+        order.getOrderItems().forEach(orderItem -> inventoryService.release(
+                orderItem.getProduct(),
+                orderItem.getQuantity(),
+                cancelReason(cancelReason)
+        ));
+
+        return PaymentResponse.from(payment);
+    }
+
     private void validateOrderCanBePaid(Order order) {
         if (order.getStatus() != OrderStatus.PAYMENT_PENDING) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+    }
+
+    private void validateOrderCanBeCanceled(Order order) {
+        if (order.getStatus() != OrderStatus.PAID) {
             throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
         }
     }
@@ -104,6 +154,12 @@ public class PaymentService {
         }
     }
 
+    private void validateCancelResponseAmount(Payment payment, PaymentCancelResponse cancelResponse) {
+        if (cancelResponse == null || payment.getAmount().compareTo(cancelResponse.canceledAmount()) != 0) {
+            throw new BusinessException(ErrorCode.PAYMENT_CANCEL_FAILED);
+        }
+    }
+
     private void validateProviderOrderId(Order order, PaymentConfirmRequest request) {
         if (!order.getOrderUid().equals(request.providerOrderId())) {
             throw new BusinessException(ErrorCode.PAYMENT_ORDER_MISMATCH);
@@ -114,6 +170,13 @@ public class PaymentService {
         if (paymentRepository.existsByOrder(order) || paymentRepository.existsByPaymentKey(paymentKey)) {
             throw new BusinessException(ErrorCode.PAYMENT_ALREADY_APPROVED);
         }
+    }
+
+    private String cancelReason(String cancelReason) {
+        if (cancelReason == null || cancelReason.isBlank()) {
+            return "PAYMENT_CANCELED";
+        }
+        return "PAYMENT_CANCELED: " + cancelReason;
     }
 
     private Member getCurrentMember() {

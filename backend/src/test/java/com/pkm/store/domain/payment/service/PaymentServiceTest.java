@@ -19,6 +19,8 @@ import com.pkm.store.domain.order.repository.OrderRepository;
 import com.pkm.store.domain.order.type.OrderStatus;
 import com.pkm.store.domain.payment.client.PaymentApproveCommand;
 import com.pkm.store.domain.payment.client.PaymentApproveResponse;
+import com.pkm.store.domain.payment.client.PaymentCancelCommand;
+import com.pkm.store.domain.payment.client.PaymentCancelResponse;
 import com.pkm.store.domain.payment.client.PaymentClient;
 import com.pkm.store.domain.payment.client.PaymentClientResolver;
 import com.pkm.store.domain.payment.dto.PaymentConfirmRequest;
@@ -31,6 +33,7 @@ import com.pkm.store.domain.payment.type.PaymentStatus;
 import com.pkm.store.domain.product.entity.Product;
 import com.pkm.store.domain.product.type.ProductStatus;
 import com.pkm.store.global.exception.BusinessException;
+import com.pkm.store.global.exception.ErrorCode;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -283,6 +286,119 @@ class PaymentServiceTest {
                 .isInstanceOf(BusinessException.class);
     }
 
+    @Test
+    void cancelPaymentSucceedsWhenMemberOwnsPaidOrder() {
+        Order order = createOrder(OrderStatus.PAID);
+        Payment payment = createApprovedPayment(order);
+        givenCancelSuccess(order, payment);
+
+        PaymentResponse response = paymentService.cancelPayment(1L, "customer request");
+
+        assertThat(response.status()).isEqualTo(PaymentStatus.CANCELED);
+        verify(paymentClient).cancel(any(PaymentCancelCommand.class));
+    }
+
+    @Test
+    void cancelPaymentThrowsOrderNotFoundWhenOrderBelongsToAnotherMember() {
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> paymentService.cancelPayment(1L, "customer request"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.ORDER_NOT_FOUND);
+        verify(paymentClient, never()).cancel(any(PaymentCancelCommand.class));
+    }
+
+    @Test
+    void cancelPaymentThrowsWhenOrderIsPaymentPending() {
+        Order order = createOrder(OrderStatus.PAYMENT_PENDING);
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> paymentService.cancelPayment(1L, "customer request"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.INVALID_ORDER_STATUS);
+        verify(paymentClient, never()).cancel(any(PaymentCancelCommand.class));
+    }
+
+    @Test
+    void cancelPaymentThrowsWhenOrderIsPreparing() {
+        Order order = createOrder(OrderStatus.PREPARING);
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> paymentService.cancelPayment(1L, "customer request"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.INVALID_ORDER_STATUS);
+        verify(paymentClient, never()).cancel(any(PaymentCancelCommand.class));
+    }
+
+    @Test
+    void cancelPaymentChangesPaymentStatusToCanceled() {
+        Order order = createOrder(OrderStatus.PAID);
+        Payment payment = createApprovedPayment(order);
+        givenCancelSuccess(order, payment);
+
+        paymentService.cancelPayment(1L, "customer request");
+
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.CANCELED);
+    }
+
+    @Test
+    void cancelPaymentChangesOrderStatusToCanceled() {
+        Order order = createOrder(OrderStatus.PAID);
+        Payment payment = createApprovedPayment(order);
+        givenCancelSuccess(order, payment);
+
+        paymentService.cancelPayment(1L, "customer request");
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+    }
+
+    @Test
+    void cancelPaymentRestoresStock() {
+        Order order = createOrder(OrderStatus.PAID);
+        Product product = order.getOrderItems().get(0).getProduct();
+        Payment payment = createApprovedPayment(order);
+        givenCancelSuccess(order, payment);
+
+        paymentService.cancelPayment(1L, "customer request");
+
+        assertThat(product.getStockQuantity()).isEqualTo(11);
+    }
+
+    @Test
+    void cancelPaymentSavesReleasedInventoryHistory() {
+        Order order = createOrder(OrderStatus.PAID);
+        Payment payment = createApprovedPayment(order);
+        givenCancelSuccess(order, payment);
+        ArgumentCaptor<InventoryHistory> captor = ArgumentCaptor.forClass(InventoryHistory.class);
+
+        paymentService.cancelPayment(1L, "customer request");
+
+        verify(inventoryHistoryRepository).save(captor.capture());
+        assertThat(captor.getValue().getType()).isEqualTo(InventoryHistoryType.RELEASED);
+        assertThat(captor.getValue().getQuantity()).isEqualTo(1);
+        assertThat(captor.getValue().getReason()).isEqualTo("PAYMENT_CANCELED: customer request");
+    }
+
+    @Test
+    void cancelPaymentByAdminSucceedsWhenOrderIsPaid() {
+        Order order = createOrder(OrderStatus.PAID);
+        Payment payment = createApprovedPayment(order);
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+        givenPaymentCancelSuccess(payment);
+
+        PaymentResponse response = paymentService.cancelPaymentByAdmin(1L, "admin request");
+
+        assertThat(response.status()).isEqualTo(PaymentStatus.CANCELED);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+        verify(paymentClient).cancel(any(PaymentCancelCommand.class));
+    }
+
     private void givenConfirmSuccess(Order order) {
         givenCurrentMember();
         given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
@@ -298,6 +414,23 @@ class PaymentServiceTest {
         given(paymentRepository.save(any(Payment.class))).willAnswer(invocation -> invocation.getArgument(0));
     }
 
+    private void givenCancelSuccess(Order order, Payment payment) {
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+        givenPaymentCancelSuccess(payment);
+    }
+
+    private void givenPaymentCancelSuccess(Payment payment) {
+        given(paymentRepository.findByOrderAndStatus(payment.getOrder(), PaymentStatus.APPROVED))
+                .willReturn(Optional.of(payment));
+        given(paymentClientResolver.resolve(PaymentProvider.TOSS)).willReturn(paymentClient);
+        given(paymentClient.cancel(any(PaymentCancelCommand.class))).willReturn(new PaymentCancelResponse(
+                payment.getPaymentKey(),
+                payment.getAmount(),
+                LocalDateTime.of(2026, 5, 21, 10, 0)
+        ));
+    }
+
     private void givenCurrentMember() {
         given(memberRepository.findByEmail(MEMBER_EMAIL)).willReturn(Optional.of(member));
     }
@@ -310,6 +443,19 @@ class PaymentServiceTest {
                 order.getOrderUid(),
                 amount
         );
+    }
+
+    private Payment createApprovedPayment(Order order) {
+        Payment payment = Payment.approved(
+                order,
+                PaymentProvider.TOSS,
+                "payment-key",
+                order.getOrderUid(),
+                order.getTotalPrice(),
+                LocalDateTime.of(2026, 5, 21, 9, 30)
+        );
+        ReflectionTestUtils.setField(payment, "id", 1L);
+        return payment;
     }
 
     private Order createOrder(OrderStatus status) {

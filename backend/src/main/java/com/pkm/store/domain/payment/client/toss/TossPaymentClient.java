@@ -8,9 +8,12 @@ import com.pkm.store.domain.payment.client.PaymentClient;
 import com.pkm.store.domain.payment.type.PaymentProvider;
 import com.pkm.store.global.exception.BusinessException;
 import com.pkm.store.global.exception.ErrorCode;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Base64;
+import java.util.Comparator;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -70,7 +73,37 @@ public class TossPaymentClient implements PaymentClient {
 
     @Override
     public PaymentCancelResponse cancel(PaymentCancelCommand command) {
-        throw new UnsupportedOperationException("Toss payment cancel is not implemented yet.");
+        try {
+            TossCancelResponse response = restClient.post()
+                    .uri("/v1/payments/{paymentKey}/cancel", command.paymentKey())
+                    .header(HttpHeaders.AUTHORIZATION, authorizationHeader())
+                    .body(new TossCancelRequest(
+                            command.cancelReason(),
+                            command.cancelAmount().longValueExact()
+                    ))
+                    .retrieve()
+                    .body(TossCancelResponse.class);
+
+            if (response == null || response.cancels() == null || response.cancels().isEmpty()) {
+                throw new BusinessException(ErrorCode.PAYMENT_CANCEL_FAILED);
+            }
+
+            TossCancel cancel = response.cancels()
+                    .stream()
+                    .max(Comparator.comparing(TossCancel::canceledAt))
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_CANCEL_FAILED));
+
+            return new PaymentCancelResponse(
+                    response.paymentKey(),
+                    BigDecimal.valueOf(cancel.cancelAmount()),
+                    OffsetDateTime.parse(cancel.canceledAt()).toLocalDateTime()
+            );
+        } catch (RuntimeException exception) {
+            if (exception instanceof BusinessException businessException) {
+                throw businessException;
+            }
+            throw new BusinessException(ErrorCode.PAYMENT_CANCEL_FAILED);
+        }
     }
 
     private String authorizationHeader() {
@@ -91,6 +124,24 @@ public class TossPaymentClient implements PaymentClient {
             String orderId,
             long totalAmount,
             String approvedAt
+    ) {
+    }
+
+    private record TossCancelRequest(
+            String cancelReason,
+            long cancelAmount
+    ) {
+    }
+
+    private record TossCancelResponse(
+            String paymentKey,
+            List<TossCancel> cancels
+    ) {
+    }
+
+    private record TossCancel(
+            long cancelAmount,
+            String canceledAt
     ) {
     }
 }
