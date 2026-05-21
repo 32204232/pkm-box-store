@@ -67,3 +67,29 @@ cd backend
 
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
 - OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+
+## Local Run & Test
+
+### Backend
+
+1. MySQL을 실행하고 `pkm_box_store` DB와 `pkm_user` 계정을 준비합니다.
+2. `backend/.env.example`을 참고해 DB, JWT, Toss, S3 환경변수를 실행 환경에 주입합니다.
+3. 백엔드를 실행합니다.
+
+```powershell
+cd backend
+.\gradlew.bat bootRun
+```
+
+### Frontend
+
+1. `frontend/.env.example`을 참고해 `frontend/.env.local`을 만듭니다.
+2. 프론트엔드를 실행합니다.
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+브라우저에서 `http://localhost:3000`에 접속합니다. 자세한 쇼핑몰 흐름 테스트는 [docs/local-test-checklist.md](docs/local-test-checklist.md)를 참고하세요.
