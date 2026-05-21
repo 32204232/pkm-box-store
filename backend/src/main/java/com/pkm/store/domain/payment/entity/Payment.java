@@ -16,6 +16,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
@@ -24,7 +25,13 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "payments")
+@Table(
+        name = "payments",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_payment_order", columnNames = "order_id"),
+                @UniqueConstraint(name = "uk_payment_payment_key", columnNames = "payment_key")
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Payment {
 
@@ -33,7 +40,7 @@ public class Payment {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "order_id", nullable = false)
+    @JoinColumn(name = "order_id", nullable = false, unique = true)
     private Order order;
 
     @Enumerated(EnumType.STRING)
@@ -44,7 +51,7 @@ public class Payment {
     @Column(nullable = false, length = 30)
     private PaymentStatus status;
 
-    @Column(nullable = false, length = 200)
+    @Column(nullable = false, unique = true, length = 200)
     private String paymentKey;
 
     @Column(nullable = false, length = 100)

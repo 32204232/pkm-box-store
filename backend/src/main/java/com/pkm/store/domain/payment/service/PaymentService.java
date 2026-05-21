@@ -40,7 +40,9 @@ public class PaymentService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
         validateOrderCanBePaid(order);
-        validateAmount(order, request);
+        validateRequestAmount(order, request);
+        validateProviderOrderId(order, request);
+        validateNotAlreadyPaid(order, request.paymentKey());
 
         PaymentClient paymentClient = paymentClientResolver.resolve(request.provider());
         PaymentApproveResponse approveResponse = paymentClient.approve(new PaymentApproveCommand(
@@ -48,6 +50,7 @@ public class PaymentService {
                 request.providerOrderId(),
                 request.amount()
         ));
+        validateApproveResponseAmount(order, approveResponse);
 
         Payment payment = Payment.approved(
                 order,
@@ -74,9 +77,27 @@ public class PaymentService {
         }
     }
 
-    private void validateAmount(Order order, PaymentConfirmRequest request) {
+    private void validateRequestAmount(Order order, PaymentConfirmRequest request) {
         if (order.getTotalPrice().compareTo(request.amount()) != 0) {
             throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
+        }
+    }
+
+    private void validateApproveResponseAmount(Order order, PaymentApproveResponse approveResponse) {
+        if (order.getTotalPrice().compareTo(approveResponse.amount()) != 0) {
+            throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
+        }
+    }
+
+    private void validateProviderOrderId(Order order, PaymentConfirmRequest request) {
+        if (!order.getOrderUid().equals(request.providerOrderId())) {
+            throw new BusinessException(ErrorCode.PAYMENT_ORDER_MISMATCH);
+        }
+    }
+
+    private void validateNotAlreadyPaid(Order order, String paymentKey) {
+        if (paymentRepository.existsByOrder(order) || paymentRepository.existsByPaymentKey(paymentKey)) {
+            throw new BusinessException(ErrorCode.PAYMENT_ALREADY_APPROVED);
         }
     }
 

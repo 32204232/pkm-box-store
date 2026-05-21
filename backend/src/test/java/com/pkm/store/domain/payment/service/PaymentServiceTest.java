@@ -97,7 +97,7 @@ class PaymentServiceTest {
         Order order = createOrder(OrderStatus.PAYMENT_PENDING);
         givenConfirmSuccess(order);
 
-        PaymentResponse response = paymentService.confirmPayment(createRequest(BigDecimal.valueOf(30000)));
+        PaymentResponse response = paymentService.confirmPayment(createRequest(order, BigDecimal.valueOf(30000)));
 
         assertThat(response.provider()).isEqualTo(PaymentProvider.TOSS);
         assertThat(response.status()).isEqualTo(PaymentStatus.APPROVED);
@@ -110,7 +110,7 @@ class PaymentServiceTest {
         givenCurrentMember();
         given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
 
-        assertThatThrownBy(() -> paymentService.confirmPayment(createRequest(BigDecimal.valueOf(10000))))
+        assertThatThrownBy(() -> paymentService.confirmPayment(createRequest(order, BigDecimal.valueOf(10000))))
                 .isInstanceOf(BusinessException.class);
         verify(paymentClient, never()).approve(any(PaymentApproveCommand.class));
     }
@@ -121,7 +121,7 @@ class PaymentServiceTest {
         givenCurrentMember();
         given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
 
-        assertThatThrownBy(() -> paymentService.confirmPayment(createRequest(BigDecimal.valueOf(30000))))
+        assertThatThrownBy(() -> paymentService.confirmPayment(createRequest(order, BigDecimal.valueOf(30000))))
                 .isInstanceOf(BusinessException.class);
     }
 
@@ -130,7 +130,7 @@ class PaymentServiceTest {
         Order order = createOrder(OrderStatus.PAYMENT_PENDING);
         givenConfirmSuccess(order);
 
-        paymentService.confirmPayment(createRequest(BigDecimal.valueOf(30000)));
+        paymentService.confirmPayment(createRequest(order, BigDecimal.valueOf(30000)));
 
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
     }
@@ -141,7 +141,7 @@ class PaymentServiceTest {
         givenConfirmSuccess(order);
         ArgumentCaptor<InventoryHistory> captor = ArgumentCaptor.forClass(InventoryHistory.class);
 
-        paymentService.confirmPayment(createRequest(BigDecimal.valueOf(30000)));
+        paymentService.confirmPayment(createRequest(order, BigDecimal.valueOf(30000)));
 
         verify(inventoryHistoryRepository).save(captor.capture());
         assertThat(captor.getValue().getType()).isEqualTo(InventoryHistoryType.CONFIRMED);
@@ -149,13 +149,81 @@ class PaymentServiceTest {
         assertThat(captor.getValue().getReason()).isEqualTo("PAYMENT_APPROVED");
     }
 
-    private void givenConfirmSuccess(Order order) {
+    @Test
+    void confirmPaymentThrowsBusinessExceptionWhenApproveResponseAmountDoesNotMatch() {
+        Order order = createOrder(OrderStatus.PAYMENT_PENDING);
         givenCurrentMember();
         given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+        given(paymentRepository.existsByOrder(order)).willReturn(false);
+        given(paymentRepository.existsByPaymentKey("payment-key")).willReturn(false);
         given(paymentClientResolver.resolve(PaymentProvider.TOSS)).willReturn(paymentClient);
         given(paymentClient.approve(any(PaymentApproveCommand.class))).willReturn(new PaymentApproveResponse(
                 "payment-key",
-                "provider-order-id",
+                order.getOrderUid(),
+                BigDecimal.valueOf(10000),
+                LocalDateTime.of(2026, 5, 21, 9, 30)
+        ));
+
+        assertThatThrownBy(() -> paymentService.confirmPayment(createRequest(order, BigDecimal.valueOf(30000))))
+                .isInstanceOf(BusinessException.class);
+        verify(paymentRepository, never()).save(any(Payment.class));
+        verify(inventoryHistoryRepository, never()).save(any(InventoryHistory.class));
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAYMENT_PENDING);
+    }
+
+    @Test
+    void confirmPaymentThrowsBusinessExceptionWhenProviderOrderIdDoesNotMatch() {
+        Order order = createOrder(OrderStatus.PAYMENT_PENDING);
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+
+        PaymentConfirmRequest request = new PaymentConfirmRequest(
+                1L,
+                PaymentProvider.TOSS,
+                "payment-key",
+                "wrong-order-id",
+                BigDecimal.valueOf(30000)
+        );
+
+        assertThatThrownBy(() -> paymentService.confirmPayment(request))
+                .isInstanceOf(BusinessException.class);
+        verify(paymentClient, never()).approve(any(PaymentApproveCommand.class));
+    }
+
+    @Test
+    void confirmPaymentThrowsBusinessExceptionWhenOrderAlreadyHasPayment() {
+        Order order = createOrder(OrderStatus.PAYMENT_PENDING);
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+        given(paymentRepository.existsByOrder(order)).willReturn(true);
+
+        assertThatThrownBy(() -> paymentService.confirmPayment(createRequest(order, BigDecimal.valueOf(30000))))
+                .isInstanceOf(BusinessException.class);
+        verify(paymentClient, never()).approve(any(PaymentApproveCommand.class));
+    }
+
+    @Test
+    void confirmPaymentThrowsBusinessExceptionWhenPaymentKeyAlreadyExists() {
+        Order order = createOrder(OrderStatus.PAYMENT_PENDING);
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+        given(paymentRepository.existsByOrder(order)).willReturn(false);
+        given(paymentRepository.existsByPaymentKey("payment-key")).willReturn(true);
+
+        assertThatThrownBy(() -> paymentService.confirmPayment(createRequest(order, BigDecimal.valueOf(30000))))
+                .isInstanceOf(BusinessException.class);
+        verify(paymentClient, never()).approve(any(PaymentApproveCommand.class));
+    }
+
+    private void givenConfirmSuccess(Order order) {
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+        given(paymentRepository.existsByOrder(order)).willReturn(false);
+        given(paymentRepository.existsByPaymentKey("payment-key")).willReturn(false);
+        given(paymentClientResolver.resolve(PaymentProvider.TOSS)).willReturn(paymentClient);
+        given(paymentClient.approve(any(PaymentApproveCommand.class))).willReturn(new PaymentApproveResponse(
+                "payment-key",
+                order.getOrderUid(),
                 BigDecimal.valueOf(30000),
                 LocalDateTime.of(2026, 5, 21, 9, 30)
         ));
@@ -166,12 +234,12 @@ class PaymentServiceTest {
         given(memberRepository.findByEmail(MEMBER_EMAIL)).willReturn(Optional.of(member));
     }
 
-    private PaymentConfirmRequest createRequest(BigDecimal amount) {
+    private PaymentConfirmRequest createRequest(Order order, BigDecimal amount) {
         return new PaymentConfirmRequest(
                 1L,
                 PaymentProvider.TOSS,
                 "payment-key",
-                "provider-order-id",
+                order.getOrderUid(),
                 amount
         );
     }
