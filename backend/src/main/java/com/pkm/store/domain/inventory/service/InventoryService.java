@@ -32,4 +32,13 @@ public class InventoryService {
                 reason
         ));
     }
+
+    public void confirm(Product product, int quantity, String reason) {
+        inventoryHistoryRepository.save(InventoryHistory.create(
+                product,
+                InventoryHistoryType.CONFIRMED,
+                quantity,
+                reason
+        ));
+    }
 }
