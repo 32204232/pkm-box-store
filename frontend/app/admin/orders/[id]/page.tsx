@@ -53,6 +53,10 @@ export default function AdminOrderDetailPage() {
   }, [orderId]);
 
   async function updateStatus(status: OrderStatus) {
+    if (updating) {
+      return;
+    }
+
     setUpdating(true);
     setMessage(null);
     try {

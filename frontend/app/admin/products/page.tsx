@@ -28,6 +28,9 @@ export default function AdminProductsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [hidingProductId, setHidingProductId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [form, setForm] = useState(emptyForm);
 
@@ -38,6 +41,8 @@ export default function AdminProductsPage() {
       setProducts(await api.products());
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "상품 조회에 실패했습니다.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -78,8 +83,7 @@ export default function AdminProductsPage() {
   }
 
   async function uploadImage() {
-    if (!selectedImage) {
-      setMessage("업로드할 이미지 파일을 선택하세요.");
+    if (!selectedImage || uploading) {
       return;
     }
 
@@ -98,6 +102,11 @@ export default function AdminProductsPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting) {
+      return;
+    }
+
+    setSubmitting(true);
     setMessage(null);
 
     const body = {
@@ -118,15 +127,25 @@ export default function AdminProductsPage() {
       await loadProducts();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : isEditMode ? "상품 수정에 실패했습니다." : "상품 등록에 실패했습니다.");
+    } finally {
+      setSubmitting(false);
     }
   }
 
   async function hideProduct(id: number) {
+    if (hidingProductId !== null) {
+      return;
+    }
+
+    setHidingProductId(id);
+    setMessage(null);
     try {
       await api.hideProduct(id);
       await loadProducts();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "상품 숨김 처리에 실패했습니다.");
+    } finally {
+      setHidingProductId(null);
     }
   }
 
@@ -139,46 +158,57 @@ export default function AdminProductsPage() {
         <Message message={message} />
         <div className="split">
           <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>상품</th>
-                  <th>상태</th>
-                  <th>가격</th>
-                  <th>재고</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((product) => (
-                  <tr key={product.id}>
-                    <td>{product.name}</td>
-                    <td>
-                      <StatusBadge value={product.status} />
-                    </td>
-                    <td>{formatPrice(product.price)}</td>
-                    <td>{product.stockQuantity}</td>
-                    <td>
-                      <div className="action-group">
-                        <button className="button" type="button" onClick={() => startEdit(product)}>
-                          수정
-                        </button>
-                        <button className="button danger" type="button" onClick={() => hideProduct(product.id)}>
-                          숨김
-                        </button>
-                      </div>
-                    </td>
+            {loading ? (
+              <div className="alert">상품 목록을 불러오고 있습니다.</div>
+            ) : products.length === 0 ? (
+              <div className="alert">등록된 상품이 없습니다.</div>
+            ) : (
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>상품</th>
+                    <th>상태</th>
+                    <th>가격</th>
+                    <th>재고</th>
+                    <th></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {products.map((product) => (
+                    <tr key={product.id}>
+                      <td>{product.name}</td>
+                      <td>
+                        <StatusBadge value={product.status} />
+                      </td>
+                      <td>{formatPrice(product.price)}</td>
+                      <td>{product.stockQuantity}</td>
+                      <td>
+                        <div className="action-group">
+                          <button className="button" type="button" onClick={() => startEdit(product)}>
+                            수정
+                          </button>
+                          <button
+                            className="button danger"
+                            type="button"
+                            onClick={() => hideProduct(product.id)}
+                            disabled={hidingProductId === product.id}
+                          >
+                            숨김
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
           <form className="card" onSubmit={submit}>
             <div className="card-body form">
               <div className="row">
                 <strong>{isEditMode ? "상품 수정" : "상품 등록"}</strong>
                 {isEditMode && (
-                  <button className="button" type="button" onClick={cancelEdit}>
+                  <button className="button" type="button" onClick={cancelEdit} disabled={submitting}>
                     수정 취소
                   </button>
                 )}
@@ -267,7 +297,9 @@ export default function AdminProductsPage() {
                   ))}
                 </select>
               </label>
-              <button className="button primary">{isEditMode ? "수정 저장" : "등록"}</button>
+              <button className="button primary" disabled={submitting}>
+                {isEditMode ? "수정 저장" : "등록"}
+              </button>
             </div>
           </form>
         </div>

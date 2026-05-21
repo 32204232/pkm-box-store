@@ -11,15 +11,22 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting) {
+      return;
+    }
+
+    setSubmitting(true);
     setMessage(null);
     try {
       await api.signup({ email, password, name });
       router.push("/login");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "회원가입 실패");
+      setSubmitting(false);
     }
   }
 
@@ -46,7 +53,9 @@ export default function SignupPage() {
             onChange={(event) => setPassword(event.target.value)}
           />
         </label>
-        <button className="button primary">가입</button>
+        <button className="button primary" disabled={submitting}>
+          가입
+        </button>
         <Message message={message} />
       </form>
     </div>

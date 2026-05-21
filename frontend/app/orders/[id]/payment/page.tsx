@@ -53,7 +53,7 @@ export default function OrderPaymentPage() {
   }, [orderId]);
 
   async function startPayment() {
-    if (!order) {
+    if (!order || paying || canceling) {
       return;
     }
 
@@ -94,7 +94,7 @@ export default function OrderPaymentPage() {
   }
 
   async function cancelPayment() {
-    if (!order) {
+    if (!order || paying || canceling) {
       return;
     }
 

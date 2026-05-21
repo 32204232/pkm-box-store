@@ -9,12 +9,14 @@ import type { Product } from "@/types/api";
 export default function ProductListPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api
       .products()
       .then(setProducts)
-      .catch((error) => setMessage(error.message));
+      .catch((error) => setMessage(error instanceof Error ? error.message : "상품 목록 조회 실패"))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -26,11 +28,17 @@ export default function ProductListPage() {
         </div>
       </div>
       <Message message={message} />
-      <div className="grid">
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
+      {loading ? (
+        <div className="alert">상품 목록을 불러오고 있습니다.</div>
+      ) : products.length === 0 ? (
+        <div className="alert">표시할 상품이 없습니다.</div>
+      ) : (
+        <div className="grid">
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
