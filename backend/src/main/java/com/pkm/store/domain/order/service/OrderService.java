@@ -67,6 +67,20 @@ public class OrderService {
         return OrderResponse.from(order);
     }
 
+    @Transactional
+    public void expireOrder(Long orderId) {
+        Member member = getCurrentMember();
+        Order order = orderRepository.findByIdAndMember(orderId, member)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+
+        order.expire();
+        order.getOrderItems().forEach(orderItem -> inventoryService.release(
+                orderItem.getProduct(),
+                orderItem.getQuantity(),
+                "ORDER_EXPIRED"
+        ));
+    }
+
     private Member getCurrentMember() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null) {

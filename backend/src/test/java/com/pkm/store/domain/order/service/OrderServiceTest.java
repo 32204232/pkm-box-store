@@ -9,13 +9,16 @@ import static org.mockito.Mockito.verify;
 
 import com.pkm.store.domain.cart.entity.CartItem;
 import com.pkm.store.domain.cart.repository.CartItemRepository;
+import com.pkm.store.domain.inventory.entity.InventoryHistory;
 import com.pkm.store.domain.inventory.repository.InventoryHistoryRepository;
 import com.pkm.store.domain.inventory.service.InventoryService;
+import com.pkm.store.domain.inventory.type.InventoryHistoryType;
 import com.pkm.store.domain.member.entity.Member;
 import com.pkm.store.domain.member.repository.MemberRepository;
 import com.pkm.store.domain.order.dto.OrderCreateRequest;
 import com.pkm.store.domain.order.dto.OrderResponse;
 import com.pkm.store.domain.order.entity.Order;
+import com.pkm.store.domain.order.entity.OrderItem;
 import com.pkm.store.domain.order.repository.OrderRepository;
 import com.pkm.store.domain.order.type.OrderStatus;
 import com.pkm.store.domain.product.entity.Product;
@@ -23,16 +26,19 @@ import com.pkm.store.domain.product.type.ProductStatus;
 import com.pkm.store.global.exception.BusinessException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
@@ -58,7 +64,7 @@ class OrderServiceTest {
     void setUp() {
         InventoryService inventoryService = new InventoryService(inventoryHistoryRepository);
         orderService = new OrderService(orderRepository, cartItemRepository, memberRepository, inventoryService);
-        member = Member.create(MEMBER_EMAIL, "encoded-password", "홍길동");
+        member = Member.create(MEMBER_EMAIL, "encoded-password", "Test Member");
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(MEMBER_EMAIL, null)
         );
@@ -82,7 +88,7 @@ class OrderServiceTest {
         assertThat(response.status()).isEqualTo(OrderStatus.PAYMENT_PENDING);
         assertThat(response.totalPrice()).isEqualByComparingTo("60000");
         assertThat(response.items()).hasSize(1);
-        assertThat(response.items().get(0).productNameSnapshot()).isEqualTo("포켓몬 카드 박스");
+        assertThat(response.items().get(0).productNameSnapshot()).isEqualTo("Pokemon Card Box");
         assertThat(response.items().get(0).orderPrice()).isEqualByComparingTo("30000");
     }
 
@@ -145,21 +151,98 @@ class OrderServiceTest {
         verify(orderRepository, never()).save(any(Order.class));
     }
 
+    @Test
+    void expireOrderSucceedsWhenPaymentPendingOrderIsExpired() {
+        Order order = createExpiredPendingOrder(createProduct(ProductStatus.ON_SALE, 5), 2);
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+
+        orderService.expireOrder(1L);
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.EXPIRED);
+    }
+
+    @Test
+    void expireOrderRestoresStock() {
+        Product product = createProduct(ProductStatus.ON_SALE, 5);
+        Order order = createExpiredPendingOrder(product, 2);
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+
+        orderService.expireOrder(1L);
+
+        assertThat(product.getStockQuantity()).isEqualTo(7);
+    }
+
+    @Test
+    void expireOrderSavesReleasedInventoryHistory() {
+        Product product = createProduct(ProductStatus.ON_SALE, 5);
+        Order order = createExpiredPendingOrder(product, 2);
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+        ArgumentCaptor<InventoryHistory> captor = ArgumentCaptor.forClass(InventoryHistory.class);
+
+        orderService.expireOrder(1L);
+
+        verify(inventoryHistoryRepository).save(captor.capture());
+        assertThat(captor.getValue().getType()).isEqualTo(InventoryHistoryType.RELEASED);
+        assertThat(captor.getValue().getQuantity()).isEqualTo(2);
+        assertThat(captor.getValue().getReason()).isEqualTo("ORDER_EXPIRED");
+    }
+
+    @Test
+    void expireOrderThrowsBusinessExceptionWhenOrderIsPaid() {
+        Order order = createExpiredPendingOrder(createProduct(ProductStatus.ON_SALE, 5), 2);
+        ReflectionTestUtils.setField(order, "status", OrderStatus.PAID);
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.expireOrder(1L))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void expireOrderThrowsBusinessExceptionWhenOrderIsAlreadyExpired() {
+        Order order = createExpiredPendingOrder(createProduct(ProductStatus.ON_SALE, 5), 2);
+        order.expire();
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.expireOrder(1L))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void expireOrderThrowsBusinessExceptionWhenOrderDoesNotBelongToCurrentMember() {
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.expireOrder(1L))
+                .isInstanceOf(BusinessException.class);
+    }
+
     private void givenCurrentMember() {
         given(memberRepository.findByEmail(MEMBER_EMAIL)).willReturn(Optional.of(member));
     }
 
     private OrderCreateRequest createRequest() {
-        return new OrderCreateRequest("홍길동", "010-1234-5678", "서울시 강남구");
+        return new OrderCreateRequest("Test Member", "010-1234-5678", "Seoul");
+    }
+
+    private Order createExpiredPendingOrder(Product product, int quantity) {
+        Order order = Order.create(member, "Test Member", "010-1234-5678", "Seoul");
+        order.addOrderItem(OrderItem.create(product, quantity));
+        ReflectionTestUtils.setField(order, "expiresAt", LocalDateTime.now().minusMinutes(1));
+        return order;
     }
 
     private Product createProduct(ProductStatus status, int stockQuantity) {
         return Product.create(
-                "포켓몬 카드 박스",
-                "한국어판 포켓몬 카드 박스",
+                "Pokemon Card Box",
+                "Korean Pokemon card box",
                 BigDecimal.valueOf(30000),
-                "부스터 박스",
-                "스칼렛&바이올렛",
+                "Booster Box",
+                "Scarlet Violet",
                 LocalDate.of(2026, 1, 1),
                 stockQuantity,
                 "https://example.com/product.jpg",

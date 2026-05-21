@@ -22,4 +22,14 @@ public class InventoryService {
                 reason
         ));
     }
+
+    public void release(Product product, int quantity, String reason) {
+        product.increaseStock(quantity);
+        inventoryHistoryRepository.save(InventoryHistory.create(
+                product,
+                InventoryHistoryType.RELEASED,
+                quantity,
+                reason
+        ));
+    }
 }

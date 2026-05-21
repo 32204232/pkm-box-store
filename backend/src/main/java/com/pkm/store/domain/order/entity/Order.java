@@ -2,6 +2,8 @@ package com.pkm.store.domain.order.entity;
 
 import com.pkm.store.domain.member.entity.Member;
 import com.pkm.store.domain.order.type.OrderStatus;
+import com.pkm.store.global.exception.BusinessException;
+import com.pkm.store.global.exception.ErrorCode;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -32,6 +34,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Order {
 
+    private static final long PAYMENT_EXPIRATION_MINUTES = 30;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -59,6 +63,9 @@ public class Order {
     @Column(nullable = false, length = 500)
     private String address;
 
+    @Column(nullable = false)
+    private LocalDateTime expiresAt;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private final List<OrderItem> orderItems = new ArrayList<>();
 
@@ -69,6 +76,7 @@ public class Order {
     private LocalDateTime updatedAt;
 
     private Order(Member member, String receiverName, String receiverPhone, String address) {
+        LocalDateTime now = LocalDateTime.now();
         this.orderUid = UUID.randomUUID().toString();
         this.member = member;
         this.status = OrderStatus.PAYMENT_PENDING;
@@ -76,6 +84,7 @@ public class Order {
         this.receiverName = receiverName;
         this.receiverPhone = receiverPhone;
         this.address = address;
+        this.expiresAt = now.plusMinutes(PAYMENT_EXPIRATION_MINUTES);
     }
 
     public static Order create(Member member, String receiverName, String receiverPhone, String address) {
@@ -86,6 +95,20 @@ public class Order {
         orderItems.add(orderItem);
         orderItem.assignOrder(this);
         totalPrice = totalPrice.add(orderItem.getLineTotal());
+    }
+
+    public void expire() {
+        if (status != OrderStatus.PAYMENT_PENDING) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+        if (!isExpired(LocalDateTime.now())) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+        this.status = OrderStatus.EXPIRED;
+    }
+
+    public boolean isExpired(LocalDateTime now) {
+        return !expiresAt.isAfter(now);
     }
 
     @PrePersist

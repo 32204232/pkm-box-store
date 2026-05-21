@@ -14,6 +14,7 @@ public record OrderResponse(
         String receiverName,
         String receiverPhone,
         String address,
+        LocalDateTime expiresAt,
         List<OrderItemResponse> items,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
@@ -28,6 +29,7 @@ public record OrderResponse(
                 order.getReceiverName(),
                 order.getReceiverPhone(),
                 order.getAddress(),
+                order.getExpiresAt(),
                 order.getOrderItems().stream().map(OrderItemResponse::from).toList(),
                 order.getCreatedAt(),
                 order.getUpdatedAt()
