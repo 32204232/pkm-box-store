@@ -31,8 +31,6 @@ Request:
 }
 ```
 
-`releaseDate`와 `imageUrl`은 `null`을 보내면 기존 값을 제거한다. 그 외 필드는 값이 있는 경우 해당 값으로 수정한다.
-
 Response:
 
 ```json
@@ -65,6 +63,8 @@ Request:
   "password": "password123"
 }
 ```
+
+`releaseDate`와 `imageUrl`은 `null`을 보내면 기존 값을 제거한다. 그 외 필드는 값이 있는 경우 해당 값으로 수정한다.
 
 Response:
 
@@ -421,7 +421,8 @@ Response:
 주요 예외:
 
 - `PRODUCT_NOT_FOUND`
-- `PRODUCT_NOT_AVAILABLE`
+- `PRODUCT_NOT_PURCHASABLE`
+- `OUT_OF_STOCK`
 - `INVALID_CART_QUANTITY`
 - `MEMBER_NOT_FOUND`
 - `401 Unauthorized`
@@ -460,6 +461,8 @@ Response:
 주요 예외:
 
 - `CART_ITEM_NOT_FOUND`
+- `PRODUCT_NOT_PURCHASABLE`
+- `OUT_OF_STOCK`
 - `INVALID_CART_QUANTITY`
 - `MEMBER_NOT_FOUND`
 - `401 Unauthorized`
@@ -689,7 +692,7 @@ Response:
 - `EMPTY_CART`
 - `ADDRESS_NOT_FOUND`
 - `INVALID_ADDRESS_REQUEST`
-- `ORDER_NOT_ALLOWED`
+- `PRODUCT_NOT_PURCHASABLE`
 - `OUT_OF_STOCK`
 - `MEMBER_NOT_FOUND`
 - `401 Unauthorized`
