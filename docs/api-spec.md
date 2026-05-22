@@ -64,8 +64,6 @@ Request:
 }
 ```
 
-`releaseDate`와 `imageUrl`은 `null`을 보내면 기존 값을 제거한다. 그 외 필드는 값이 있는 경우 해당 값으로 수정한다.
-
 Response:
 
 ```json
@@ -264,6 +262,8 @@ Request:
   "status": "ON_SALE"
 }
 ```
+
+`releaseDate`와 `imageUrl`은 `null`을 보내면 기존 값을 제거한다. 그 외 필드는 값이 있는 경우 해당 값으로 수정한다.
 
 Response:
 

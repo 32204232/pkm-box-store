@@ -2,6 +2,22 @@
 
 로컬에서 PKM Box Store의 회원, 관리자, 결제, 배송, 운영 안정성 흐름을 재현하기 위한 체크리스트입니다.
 
+## 0. 자동 검증
+
+- [ ] 백엔드 단위/슬라이스 테스트를 실행한다.
+
+```powershell
+cd backend
+.\gradlew.bat test --no-daemon
+```
+
+- [ ] 프론트엔드 프로덕션 빌드를 실행한다.
+
+```powershell
+cd frontend
+npm run build
+```
+
 ## 1. 로컬 실행 전 준비
 
 ### MySQL
@@ -88,8 +104,13 @@ npm run dev
 - [ ] `/`에서 상품 목록이 보이는지 확인한다.
 - [ ] keyword/category/series/status/inStockOnly/sort 필터가 동작하는지 확인한다.
 - [ ] 상품 상세에서 장바구니 담기와 바로 구매가 동작하는지 확인한다.
+- [ ] `ON_SALE`이 아닌 상품은 상품 상세에서 구매 버튼이 비활성화되는지 확인한다.
+- [ ] `SOLD_OUT`, `COMING_SOON`, `HIDDEN` 상품을 API로 장바구니에 담으려 하면 `PRODUCT_NOT_PURCHASABLE`로 거부되는지 확인한다.
+- [ ] 재고가 0이거나 요청 수량보다 부족한 상품을 장바구니에 담으려 하면 `OUT_OF_STOCK`으로 거부되는지 확인한다.
 - [ ] `/cart`에서 수량 변경, 삭제, 비우기가 동작하는지 확인한다.
+- [ ] `/cart`에서 재고보다 큰 수량으로 변경하려 하면 `OUT_OF_STOCK`으로 거부되는지 확인한다.
 - [ ] 배송지를 선택하거나 직접 입력해 주문을 생성한다.
+- [ ] 주문 생성 직전 상품 상태가 `ON_SALE`이 아니거나 재고가 부족해진 경우 주문 생성이 거부되는지 확인한다.
 - [ ] 주문 생성 후 `/orders/{orderId}/payment`로 이동하는지 확인한다.
 - [ ] DB에서 주문 상태가 `PAYMENT_PENDING`, 재고 이력이 `RESERVED`인지 확인한다.
 
@@ -119,7 +140,10 @@ npm run dev
 
 - [ ] `/admin/products`에서 상품을 등록한다.
 - [ ] 상품을 수정한다.
+- [ ] 상품 수정에서 출시일과 이미지 URL을 비우고 저장하면 기존 `releaseDate`, `imageUrl`이 제거되는지 확인한다.
 - [ ] 상품을 숨김 처리한다.
+- [ ] 숨김 처리된 상품이 일반 상품 목록에서는 보이지 않고 `/admin/products` 관리자 상품 목록에는 계속 보이는지 확인한다.
+- [ ] 숨김 처리된 상품을 관리자 상품 수정으로 `ON_SALE` 등 다른 상태로 변경할 수 있는지 확인한다.
 - [ ] `/admin/audit-logs`에서 `PRODUCT_CREATED`, `PRODUCT_UPDATED`, `PRODUCT_HIDDEN` 로그를 확인한다.
 
 ### 관리자 주문/배송
@@ -208,6 +232,16 @@ ORDER BY id DESC;
 
 - 원인: 관리자 API에 일반 회원 권한으로 접근했다.
 - 해결: DB에서 `ROLE_ADMIN`으로 변경한 뒤 로그아웃 후 다시 로그인한다.
+
+### PRODUCT_NOT_PURCHASABLE
+
+- 원인: 상품 상태가 `ON_SALE`이 아니라 장바구니 담기 또는 주문 생성이 허용되지 않는다.
+- 해결: 관리자 상품 관리에서 상품 상태를 확인하고, 판매 가능한 상품만 `ON_SALE`로 변경한다.
+
+### OUT_OF_STOCK
+
+- 원인: 상품 재고가 0이거나 요청 수량보다 부족하다.
+- 해결: 관리자 상품 관리에서 재고를 확인하거나 주문 수량을 줄인다.
 
 ### Toss 키 누락 또는 상점 불일치
 
