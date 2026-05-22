@@ -510,6 +510,19 @@ select {
   margin: 16px;
 }
 
+.admin-audit-logs-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-audit-logs-table {
+  min-width: 920px;
+}
+
+.admin-audit-logs-table td:nth-child(6) {
+  min-width: 260px;
+  line-height: 1.5;
+}
+
 .card {
   overflow: hidden;
   border: 1px solid var(--line);

@@ -1,5 +1,6 @@
 import { getAccessToken, setAccessToken } from "@/store/auth";
 import type {
+  AdminAuditLogResponse,
   AdminDashboardResponse,
   AdminOrder,
   Cart,
@@ -215,6 +216,10 @@ export const api = {
 
   adminDashboard() {
     return request<AdminDashboardResponse>("/api/admin/dashboard");
+  },
+
+  adminAuditLogs() {
+    return request<AdminAuditLogResponse[]>("/api/admin/audit-logs");
   },
 
   updateAdminOrderStatus(orderId: number, status: OrderStatus, courierCompany?: string, trackingNumber?: string) {

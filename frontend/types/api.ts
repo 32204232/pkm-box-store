@@ -12,6 +12,15 @@ export type OrderStatus =
   | "EXPIRED";
 export type PaymentProvider = "TOSS" | "NAVER_PAY" | "KAKAO_PAY";
 export type PaymentStatus = "READY" | "IN_PROGRESS" | "APPROVED" | "FAILED" | "CANCELED";
+export type AdminAuditActionType =
+  | "PRODUCT_CREATED"
+  | "PRODUCT_UPDATED"
+  | "PRODUCT_HIDDEN"
+  | "ORDER_PREPARED"
+  | "ORDER_SHIPPED"
+  | "ORDER_DELIVERED"
+  | "PAYMENT_CANCELED";
+export type AdminAuditTargetType = "PRODUCT" | "ORDER" | "PAYMENT";
 
 export interface ApiError {
   code: string;
@@ -175,6 +184,17 @@ export interface AdminDashboardResponse {
   lowStockProductCount: number;
   recentOrders: AdminDashboardOrderResponse[];
   lowStockProducts: AdminDashboardProductResponse[];
+}
+
+export interface AdminAuditLogResponse {
+  id: number;
+  adminId: number;
+  adminEmail: string;
+  actionType: AdminAuditActionType;
+  targetType: AdminAuditTargetType;
+  targetId: number;
+  description: string;
+  createdAt: string;
 }
 
 export interface PaymentConfirmRequest {

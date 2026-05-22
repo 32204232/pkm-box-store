@@ -39,6 +39,7 @@ export function Header() {
         {role === "ROLE_ADMIN" && <Link href="/admin">관리자 대시보드</Link>}
         {role === "ROLE_ADMIN" && <Link href="/admin/products">관리자 상품</Link>}
         {role === "ROLE_ADMIN" && <Link href="/admin/orders">관리자 주문</Link>}
+        {role === "ROLE_ADMIN" && <Link href="/admin/audit-logs">감사 로그</Link>}
         {loggedIn ? (
           <button className="nav-button" type="button" onClick={logout}>
             로그아웃
