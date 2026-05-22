@@ -43,10 +43,13 @@ public class PaymentService {
         Order order = orderRepository.findByIdAndMember(request.orderId(), member)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
-        validateOrderCanBePaid(order);
         validateRequestAmount(order, request);
         validateProviderOrderId(order, request);
-        validateNotAlreadyPaid(order, request.paymentKey());
+        if (order.getStatus() == OrderStatus.PAID) {
+            return PaymentResponse.from(findIdempotentApprovedPayment(order, request));
+        }
+        validateOrderCanBePaid(order);
+        validateNotAlreadyPaid(order, request.paymentKey(), request.providerOrderId());
 
         PaymentClient paymentClient = paymentClientResolver.resolve(request.provider());
         PaymentApproveResponse approveResponse = paymentClient.approve(new PaymentApproveCommand(
@@ -107,6 +110,10 @@ public class PaymentService {
     }
 
     private PaymentResponse cancelPaidOrder(Order order, String cancelReason) {
+        if (order.getStatus() == OrderStatus.CANCELED) {
+            return PaymentResponse.from(paymentRepository.findByOrderAndStatus(order, PaymentStatus.CANCELED)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND)));
+        }
         validateOrderCanBeCanceled(order);
         Payment payment = paymentRepository.findByOrderAndStatus(order, PaymentStatus.APPROVED)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
@@ -166,10 +173,27 @@ public class PaymentService {
         }
     }
 
-    private void validateNotAlreadyPaid(Order order, String paymentKey) {
-        if (paymentRepository.existsByOrder(order) || paymentRepository.existsByPaymentKey(paymentKey)) {
+    private void validateNotAlreadyPaid(Order order, String paymentKey, String providerOrderId) {
+        if (paymentRepository.existsByOrder(order)
+                || paymentRepository.existsByPaymentKey(paymentKey)
+                || paymentRepository.findByProviderOrderId(providerOrderId).isPresent()) {
             throw new BusinessException(ErrorCode.PAYMENT_ALREADY_APPROVED);
         }
+    }
+
+    private Payment findIdempotentApprovedPayment(Order order, PaymentConfirmRequest request) {
+        Payment payment = paymentRepository.findByOrderAndStatus(order, PaymentStatus.APPROVED)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        if (!payment.getPaymentKey().equals(request.paymentKey())
+                || !payment.getProviderOrderId().equals(request.providerOrderId())) {
+            throw new BusinessException(ErrorCode.PAYMENT_ALREADY_APPROVED);
+        }
+        if (payment.getAmount().compareTo(request.amount()) != 0) {
+            throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
+        }
+
+        return payment;
     }
 
     private String cancelReason(String cancelReason) {
