@@ -63,10 +63,30 @@ export function PaymentFailContent() {
         <Message message={processing ? "결제 실패 정보를 처리하고 있습니다." : message} />
 
         {!processing && (
-          <div className="action-group">
-            <Link className="button primary" href="/orders">
-              주문 목록으로 이동
-            </Link>
+          <div className="payment-result-card payment-result-fail">
+            <div className="payment-result-icon">실패</div>
+            <div className="payment-result-content">
+              <h2>결제가 완료되지 않았습니다.</h2>
+              <p>주문 상태를 확인하거나 상품 목록으로 돌아가 다시 주문할 수 있습니다.</p>
+
+              {message && (
+                <div className="payment-result-details">
+                  <div>
+                    <span className="muted">실패 사유</span>
+                    <strong>{message}</strong>
+                  </div>
+                </div>
+              )}
+
+              <div className="payment-result-actions">
+                <Link className="button primary payment-result-primary" href="/orders">
+                  주문 목록으로 이동
+                </Link>
+                <Link className="button" href="/">
+                  상품 목록으로 이동
+                </Link>
+              </div>
+            </div>
           </div>
         )}
       </div>

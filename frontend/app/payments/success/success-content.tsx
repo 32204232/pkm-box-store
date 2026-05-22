@@ -82,33 +82,48 @@ export function PaymentSuccessContent() {
         {confirming ? (
           <div className="alert">결제를 승인하고 있습니다.</div>
         ) : payment ? (
-          <div className="card">
-            <div className="card-body stack">
-              <strong>결제가 완료되었습니다.</strong>
-              <div className="row">
-                <span className="muted">주문번호</span>
-                <span>{payment.orderId}</span>
+          <div className="payment-result-card payment-result-success">
+            <div className="payment-result-icon">완료</div>
+            <div className="payment-result-content">
+              <h2>주문 결제가 완료되었습니다.</h2>
+              <p>주문 상세에서 결제 내역과 배송 진행 상태를 확인할 수 있습니다.</p>
+
+              <div className="payment-result-details">
+                <div className="row">
+                  <span className="muted">주문번호</span>
+                  <strong>{payment.orderId}</strong>
+                </div>
+                <div className="row">
+                  <span className="muted">결제 상태</span>
+                  <strong>{payment.status}</strong>
+                </div>
+                <div className="row payment-result-total">
+                  <span className="muted">결제 금액</span>
+                  <strong>{formatPrice(payment.amount)}</strong>
+                </div>
               </div>
-              <div className="row">
-                <span className="muted">결제 상태</span>
-                <span>{payment.status}</span>
-              </div>
-              <div className="row">
-                <span className="muted">결제 금액</span>
-                <strong>{formatPrice(payment.amount)}</strong>
-              </div>
-              <div className="action-group">
-                <Link className="button primary" href="/orders">
+
+              <div className="payment-result-actions">
+                <Link className="button primary payment-result-primary" href={`/orders/${payment.orderId}`}>
+                  주문 상세 보기
+                </Link>
+                <Link className="button" href="/orders">
                   주문 목록으로 이동
                 </Link>
               </div>
             </div>
           </div>
         ) : (
-          <div className="action-group">
-            <Link className="button primary" href="/orders">
-              주문 목록으로 이동
-            </Link>
+          <div className="payment-result-card">
+            <div className="payment-result-content">
+              <h2>결제 승인 결과를 확인하지 못했습니다.</h2>
+              <p>주문 목록에서 주문 상태를 확인해 주세요.</p>
+              <div className="payment-result-actions">
+                <Link className="button primary payment-result-primary" href="/orders">
+                  주문 목록으로 이동
+                </Link>
+              </div>
+            </div>
           </div>
         )}
       </div>

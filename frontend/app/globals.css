@@ -598,6 +598,97 @@ select {
   font-weight: 700;
 }
 
+.payment-result-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.payment-result-success {
+  border-color: #b8d7c5;
+}
+
+.payment-result-fail {
+  border-color: #e0b5b5;
+}
+
+.payment-result-icon {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.payment-result-success .payment-result-icon {
+  background: #e7f6ed;
+  color: var(--ok);
+}
+
+.payment-result-fail .payment-result-icon {
+  background: #fff0f0;
+  color: #b71c1c;
+}
+
+.payment-result-content {
+  display: grid;
+  gap: 16px;
+}
+
+.payment-result-content h2 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.payment-result-content p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.payment-result-details {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-muted);
+}
+
+.payment-result-details > div {
+  display: grid;
+  gap: 6px;
+}
+
+.payment-result-total strong {
+  color: var(--brand);
+  font-size: 22px;
+}
+
+.payment-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.payment-result-actions .button {
+  min-height: 46px;
+  font-weight: 700;
+}
+
+.payment-result-primary {
+  min-width: 180px;
+}
+
 .product-detail-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
@@ -797,6 +888,23 @@ select {
 
   .payment-primary-button {
     min-height: 54px;
+  }
+
+  .payment-result-card {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .payment-result-content h2 {
+    font-size: 22px;
+  }
+
+  .payment-result-actions {
+    display: grid;
+  }
+
+  .payment-result-primary {
+    min-width: 0;
   }
 
   .product-detail-layout {
