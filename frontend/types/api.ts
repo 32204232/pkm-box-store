@@ -145,6 +145,38 @@ export interface AdminOrder extends Order {
   deliveredAt: string | null;
 }
 
+export interface AdminDashboardOrderResponse {
+  id: number;
+  orderUid: string;
+  memberEmail: string;
+  memberName: string;
+  status: OrderStatus;
+  totalPrice: number;
+  createdAt: string;
+}
+
+export interface AdminDashboardProductResponse {
+  id: number;
+  name: string;
+  price: number;
+  category: string;
+  series: string;
+  stockQuantity: number;
+  status: ProductStatus;
+}
+
+export interface AdminDashboardResponse {
+  todayOrderCount: number;
+  todaySalesAmount: number;
+  paymentPendingOrderCount: number;
+  paidOrderCount: number;
+  preparingOrderCount: number;
+  shippedOrderCount: number;
+  lowStockProductCount: number;
+  recentOrders: AdminDashboardOrderResponse[];
+  lowStockProducts: AdminDashboardProductResponse[];
+}
+
 export interface PaymentConfirmRequest {
   orderId: number;
   provider: PaymentProvider;

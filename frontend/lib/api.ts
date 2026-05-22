@@ -1,5 +1,6 @@
 import { getAccessToken, setAccessToken } from "@/store/auth";
 import type {
+  AdminDashboardResponse,
   AdminOrder,
   Cart,
   CartItem,
@@ -210,6 +211,10 @@ export const api = {
 
   adminOrder(orderId: number) {
     return request<AdminOrder>(`/api/admin/orders/${orderId}`);
+  },
+
+  adminDashboard() {
+    return request<AdminDashboardResponse>("/api/admin/dashboard");
   },
 
   updateAdminOrderStatus(orderId: number, status: OrderStatus, courierCompany?: string, trackingNumber?: string) {

@@ -36,6 +36,7 @@ export function Header() {
         <Link href="/">상품</Link>
         {loggedIn && <Link href="/cart">장바구니</Link>}
         {loggedIn && <Link href="/orders">주문</Link>}
+        {role === "ROLE_ADMIN" && <Link href="/admin">관리자 대시보드</Link>}
         {role === "ROLE_ADMIN" && <Link href="/admin/products">관리자 상품</Link>}
         {role === "ROLE_ADMIN" && <Link href="/admin/orders">관리자 주문</Link>}
         {loggedIn ? (
