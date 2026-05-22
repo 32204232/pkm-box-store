@@ -1,9 +1,12 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Message } from "@/components/Message";
 import { api } from "@/lib/api";
+
+const AUTH_EXPIRED_MESSAGE_KEY = "pkm_auth_expired_message";
+const AUTH_EXPIRED_MESSAGE = "로그인이 만료되었습니다. 다시 로그인해 주세요.";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,6 +14,22 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const storedMessage = window.sessionStorage.getItem(AUTH_EXPIRED_MESSAGE_KEY);
+
+    if (params.get("reason") === "expired") {
+      setMessage(storedMessage ?? AUTH_EXPIRED_MESSAGE);
+      window.sessionStorage.removeItem(AUTH_EXPIRED_MESSAGE_KEY);
+      return;
+    }
+
+    if (storedMessage) {
+      setMessage(storedMessage);
+      window.sessionStorage.removeItem(AUTH_EXPIRED_MESSAGE_KEY);
+    }
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

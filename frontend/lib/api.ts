@@ -1,4 +1,4 @@
-import { getAccessToken, setAccessToken } from "@/store/auth";
+import { clearAccessToken, getAccessToken, setAccessToken } from "@/store/auth";
 import type {
   AdminAuditLogResponse,
   AdminDashboardResponse,
@@ -20,6 +20,8 @@ import type {
 } from "@/types/api";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+const AUTH_EXPIRED_MESSAGE_KEY = "pkm_auth_expired_message";
+const AUTH_EXPIRED_MESSAGE = "로그인이 만료되었습니다. 다시 로그인해 주세요.";
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
@@ -72,6 +74,11 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const data = contentType.includes("application/json") ? await response.json() : await response.text();
 
   if (!response.ok) {
+    if (response.status === 401 && options.auth !== false) {
+      handleUnauthorizedResponse();
+      throw new ApiClientError(AUTH_EXPIRED_MESSAGE, response.status);
+    }
+
     const message =
       response.status === 401
         ? "로그인이 필요합니다."
@@ -85,6 +92,22 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 
   return data as T;
+}
+
+function handleUnauthorizedResponse() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  clearAccessToken();
+  window.sessionStorage.setItem(AUTH_EXPIRED_MESSAGE_KEY, AUTH_EXPIRED_MESSAGE);
+
+  const currentPath = window.location.pathname;
+  if (currentPath === "/login" || currentPath === "/signup") {
+    return;
+  }
+
+  window.location.href = "/login?reason=expired";
 }
 
 export const api = {
