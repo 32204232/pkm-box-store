@@ -117,11 +117,33 @@ npm run dev
 - [ ] 상품을 클릭해 `/products/{id}` 상세 페이지가 보이는지 확인한다.
 - [ ] 상품이 없으면 관리자 계정으로 상품을 먼저 등록한다.
 
+### 상품 검색/필터/정렬
+
+- [ ] `/`에서 검색어 입력창에 상품명 일부를 입력하고 검색 버튼을 누른다.
+- [ ] `keyword` 검색 결과가 상품명 또는 설명과 일치하는 상품만 보여주는지 확인한다.
+- [ ] 카테고리 입력값으로 필터링했을 때 해당 `category` 상품만 보여주는지 확인한다.
+- [ ] 시리즈 입력값으로 필터링했을 때 해당 `series` 상품만 보여주는지 확인한다.
+- [ ] 판매 상태 필터에서 `ON_SALE`, `SOLD_OUT`, `COMING_SOON`을 각각 선택해 해당 상태 상품만 보여주는지 확인한다.
+- [ ] `재고 있는 상품만`을 선택했을 때 `stockQuantity > 0` 상품만 보여주는지 확인한다.
+- [ ] 정렬을 `낮은 가격순`, `높은 가격순`, `출시일 최신순`으로 바꿨을 때 목록 순서가 맞는지 확인한다.
+- [ ] 필터 초기화 버튼을 누르면 전체 상품 목록으로 돌아오는지 확인한다.
+- [ ] 네트워크 탭에서 `/api/products` 요청에 `keyword`, `category`, `series`, `status`, `inStockOnly`, `sort` query parameter가 조건에 맞게 붙는지 확인한다.
+
 ### 장바구니 담기
 
 - [ ] 상품 상세에서 수량을 입력하고 장바구니에 담는다.
 - [ ] `/cart`로 이동해 상품명, 단가, 수량, 합계, 총 금액이 맞는지 확인한다.
 - [ ] 수량 변경과 삭제가 정상 동작하는지 확인한다.
+
+### 배송지 관리
+
+- [ ] `/my/addresses`로 이동한다.
+- [ ] 배송지명, 수령인, 연락처, 우편번호, 기본주소, 상세주소를 입력해 배송지를 추가한다.
+- [ ] 첫 배송지 또는 기본 배송지로 지정한 배송지가 기본 배송지로 표시되는지 확인한다.
+- [ ] 다른 배송지를 추가한 뒤 기본 배송지 설정 버튼을 눌러 기본 배송지가 변경되는지 확인한다.
+- [ ] 배송지 수정 버튼을 눌러 수령인, 연락처, 주소 중 일부를 변경하고 저장한다.
+- [ ] 배송지 삭제 버튼을 눌러 목록에서 제거되는지 확인한다.
+- [ ] DB `delivery_addresses` 테이블에 생성, 수정, 삭제 결과가 반영되었는지 확인한다.
 
 ### 주문 생성
 
@@ -132,14 +154,35 @@ npm run dev
 - [ ] DB에서 `products.stock_quantity`가 주문 수량만큼 감소했는지 확인한다.
 - [ ] DB에서 `inventory_histories.type=RESERVED` 기록이 생성되었는지 확인한다.
 
+### 저장된 배송지로 주문 생성
+
+- [ ] `/my/addresses`에서 사용할 배송지를 미리 등록한다.
+- [ ] 상품을 장바구니에 담고 `/cart`로 이동한다.
+- [ ] 저장된 배송지 목록에서 배송지를 선택한다.
+- [ ] 주문 생성 버튼을 누른다.
+- [ ] `/orders/{orderId}/payment`로 이동하는지 확인한다.
+- [ ] 결제 대기 페이지의 배송 정보가 선택한 배송지의 수령인, 연락처, 주소와 일치하는지 확인한다.
+- [ ] DB `orders.zip_code`, `orders.address1`, `orders.address2`가 선택한 배송지 값으로 저장되었는지 확인한다.
+
 ### 결제 대기 페이지 이동
 
 - [ ] `/orders/{orderId}/payment`에서 주문번호, 주문 상태, 상품 목록, 총 금액, 배송 정보, 만료 시간이 보이는지 확인한다.
 - [ ] 주문 상태가 `PAYMENT_PENDING`일 때만 결제하기와 결제 취소 버튼이 보이는지 확인한다.
 - [ ] 결제하기 클릭 시 Toss Payments 결제창이 열리는지 확인한다.
 
+### 결제 대기 페이지에서 결제 취소
+
+- [ ] 새 주문을 생성해 `/orders/{orderId}/payment`로 이동한다.
+- [ ] 결제 취소 버튼을 클릭한다.
+- [ ] `/orders`로 이동하는지 확인한다.
+- [ ] `/orders`에서 주문 상태가 `FAILED`로 바뀌었는지 확인한다.
+- [ ] DB에서 `products.stock_quantity`가 예약 전 수량으로 복구되었는지 확인한다.
+- [ ] DB에서 `inventory_histories.type=RELEASED` 기록이 생성되었는지 확인한다.
+
 ### Toss 결제 성공
 
+- [ ] 현재 `.env.local`과 로컬 환경이 더미 Toss 키(`test_ck_...`, `test_sk_...`)만 사용 중이면 완전한 Toss E2E 결제 성공 검증은 불가능하다.
+- [ ] 실제 결제창 승인부터 백엔드 승인까지 검증하려면 같은 Toss 테스트 상점의 유효한 Client Key와 Secret Key가 필요하다.
 - [ ] Toss 테스트 결제창에서 테스트 카드 또는 제공되는 테스트 수단으로 결제를 성공시킨다.
 - [ ] Toss 리다이렉트 후 `/payments/success?orderId={order.id}` 페이지로 이동하는지 확인한다.
 - [ ] URL에 Toss가 추가한 `paymentKey`, `amount`가 포함되는지 확인한다.
@@ -174,7 +217,18 @@ WHERE email = 'admin@example.com';
 ```
 
 - [ ] 기존 로그인 토큰에는 이전 권한이 들어 있으므로 로그아웃 후 다시 로그인한다.
-- [ ] 헤더에 관리자 상품, 관리자 주문 메뉴가 보이는지 확인한다.
+- [ ] 헤더에 관리자 대시보드, 관리자 상품, 관리자 주문 메뉴가 보이는지 확인한다.
+
+### 관리자 대시보드
+
+- [ ] `/admin`으로 이동한다.
+- [ ] 오늘 주문 수 카드가 표시되는지 확인한다.
+- [ ] 오늘 매출 카드가 표시되고 금액 형식이 맞는지 확인한다.
+- [ ] 결제 대기, 결제 완료, 배송 준비 중, 배송 중 주문 수가 상태별로 표시되는지 확인한다.
+- [ ] 최근 주문 5개 표에 주문번호, 회원 이메일, 회원 이름, 주문 상태, 총 금액, 생성 시간이 표시되는지 확인한다.
+- [ ] 최근 주문의 상세 링크가 `/admin/orders/{id}`로 이동하는지 확인한다.
+- [ ] 재고 부족 상품 목록에 상품명, 카테고리, 시리즈, 재고, 상태가 표시되는지 확인한다.
+- [ ] 재고 부족 상품의 관리 링크가 `/admin/products`로 이동하는지 확인한다.
 
 ### 상품 등록
 
@@ -207,10 +261,27 @@ WHERE email = 'admin@example.com';
 
 - [ ] 결제 성공으로 `PAID` 상태의 주문을 만든다.
 - [ ] `/admin/orders`로 이동한다.
+- [ ] 주문번호를 클릭해 `/admin/orders/{orderId}` 상세 페이지로 이동한다.
 - [ ] 상태를 `PREPARING`으로 변경한다.
-- [ ] 이어서 `SHIPPED`, `DELIVERED` 순서로 변경한다.
+- [ ] `PREPARING -> SHIPPED` 변경 시 택배사(`courierCompany`)와 운송장 번호(`trackingNumber`)를 입력한다.
+- [ ] 상태를 `SHIPPED`로 변경한 뒤 DB `orders.courier_company`, `orders.tracking_number`, `orders.shipped_at`이 채워졌는지 확인한다.
+- [ ] 이어서 상태를 `DELIVERED`로 변경한다.
+- [ ] DB `orders.delivered_at`이 채워졌는지 확인한다.
 - [ ] 허용 흐름은 `PAID -> PREPARING -> SHIPPED -> DELIVERED`이다.
+- [ ] `PREPARING -> SHIPPED` 변경 시 택배사 또는 운송장 번호가 비어 있으면 `INVALID_REQUEST` 오류가 나는지 확인한다.
 - [ ] 잘못된 상태 변경 시 `INVALID_ORDER_STATUS` 오류가 나는지 확인한다.
+
+### 관리자 결제 취소/환불
+
+- [ ] 결제 성공으로 `PAID` 상태의 주문을 만든다.
+- [ ] 취소 전 DB `products.stock_quantity` 값을 기록한다.
+- [ ] `/admin/orders`에서 해당 주문 상세 페이지(`/admin/orders/{orderId}`)로 이동한다.
+- [ ] 취소 사유를 입력한다.
+- [ ] 결제 취소/환불 버튼을 클릭한다.
+- [ ] 주문 상태가 `CANCELED`로 변경되었는지 확인한다.
+- [ ] DB `payments.status`가 `CANCELED`로 변경되었는지 확인한다.
+- [ ] DB `products.stock_quantity`가 주문 수량만큼 복구되었는지 확인한다.
+- [ ] DB `inventory_histories.type=RELEASED` 기록이 생성되고 `reason`에 `PAYMENT_CANCELED`가 포함되는지 확인한다.
 
 ## 6. DB에서 확인할 항목
 
@@ -220,21 +291,44 @@ WHERE email = 'admin@example.com';
 - [ ] Toss 결제 승인 후: `PAID`
 - [ ] Toss 결제 실패/취소 또는 결제 취소 버튼 클릭 후: `FAILED`
 - [ ] 관리자 처리 후: `PREPARING`, `SHIPPED`, `DELIVERED`
+- [ ] 관리자 결제 취소/환불 후: `CANCELED`
 - [ ] 만료 스케줄러 처리 후: `EXPIRED`
 
 예시:
 
 ```sql
-SELECT id, order_uid, member_id, status, total_price, expires_at, created_at, updated_at
+SELECT id,
+       order_uid,
+       member_id,
+       status,
+       total_price,
+       zip_code,
+       address1,
+       address2,
+       courier_company,
+       tracking_number,
+       shipped_at,
+       delivered_at,
+       expires_at,
+       created_at,
+       updated_at
 FROM orders
 ORDER BY id DESC;
 ```
+
+### `orders` 배송/운송장 필드
+
+- [ ] 저장된 배송지로 주문 생성 시 `zip_code`, `address1`, `address2`가 채워지는지 확인한다.
+- [ ] 직접 입력 주소로 주문 생성 시 기존 `address` 값과 호환되는지 확인한다.
+- [ ] `PREPARING -> SHIPPED` 처리 후 `courier_company`, `tracking_number`, `shipped_at`이 채워지는지 확인한다.
+- [ ] `SHIPPED -> DELIVERED` 처리 후 `delivered_at`이 채워지는지 확인한다.
 
 ### `products.stock_quantity`
 
 - [ ] 주문 생성 시 주문 수량만큼 감소하는지 확인한다.
 - [ ] 결제 실패/취소 시 주문 수량만큼 복구되는지 확인한다.
 - [ ] 결제 성공 시 감소된 수량이 유지되는지 확인한다.
+- [ ] 관리자 결제 취소/환불 시 주문 수량만큼 복구되는지 확인한다.
 
 ```sql
 SELECT id, name, stock_quantity, status
@@ -242,11 +336,12 @@ FROM products
 ORDER BY id DESC;
 ```
 
-### `payments`
+### `payments.status`
 
 - [ ] 결제 성공 시 `order_id`당 하나의 결제 행이 생성되는지 확인한다.
 - [ ] `provider`가 `TOSS`인지 확인한다.
 - [ ] `status`가 `APPROVED`인지 확인한다.
+- [ ] 관리자 결제 취소/환불 후 `status`가 `CANCELED`인지 확인한다.
 - [ ] `payment_key`, `provider_order_id`, `amount`, `approved_at`이 채워졌는지 확인한다.
 
 ```sql
@@ -255,7 +350,7 @@ FROM payments
 ORDER BY id DESC;
 ```
 
-### `inventory_histories`
+### `inventory_histories.type`
 
 - [ ] 주문 생성 시 `RESERVED` 기록이 생성되는지 확인한다.
 - [ ] 결제 성공 시 `CONFIRMED` 기록이 생성되는지 확인한다.
@@ -327,4 +422,3 @@ ORDER BY id DESC;
   - IAM 사용자/역할에 S3 업로드 권한이 있는지 확인한다.
   - 테스트 파일 확장자가 `jpg`, `jpeg`, `png`, `webp`인지 확인한다.
   - 백엔드 로그의 `INVALID_IMAGE_FILE`, `IMAGE_FILE_TOO_LARGE`, `IMAGE_UPLOAD_FAILED` 오류를 확인한다.
-
