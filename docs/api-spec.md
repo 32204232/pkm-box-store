@@ -86,7 +86,22 @@ Response:
 - URL: `/api/products`
 - 인증: 불필요
 
-Request: 없음
+Query Parameters:
+
+- `keyword`: 상품명 또는 설명 검색어
+- `category`: 카테고리 필터
+- `series`: 시리즈 필터
+- `status`: 판매 상태 필터. 일반 목록 조회 예시는 `ON_SALE`, `SOLD_OUT`, `COMING_SOON`만 사용한다.
+- `inStockOnly`: `true`이면 `stockQuantity > 0` 상품만 조회
+- `sort`: 정렬 기준. `latest`, `priceAsc`, `priceDesc`, `releaseDateDesc`
+
+예시:
+
+```http
+GET /api/products?keyword=피카츄&category=부스터%20박스&series=스칼렛%26바이올렛&status=ON_SALE&inStockOnly=true&sort=priceAsc
+```
+
+`HIDDEN` 상품은 일반 상품 목록 조회에서 항상 제외된다.
 
 Response:
 
