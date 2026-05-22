@@ -805,7 +805,90 @@ Response:
 - `INVALID_REQUEST`
 - `401 Unauthorized`
 
-## 8. 관리자 주문 API
+## 8. 관리자 대시보드 API
+
+### 관리자 대시보드 조회
+
+- Method: `GET`
+- URL: `/api/admin/dashboard`
+- 인증: 관리자 필요
+
+Request: 없음
+
+Response:
+
+```json
+{
+  "todayOrderCount": 3,
+  "todaySalesAmount": 90000,
+  "paymentPendingOrderCount": 1,
+  "paidOrderCount": 2,
+  "preparingOrderCount": 1,
+  "shippedOrderCount": 1,
+  "lowStockProductCount": 2,
+  "recentOrders": [
+    {
+      "id": 1,
+      "orderUid": "550e8400-e29b-41d4-a716-446655440000",
+      "memberEmail": "member@example.com",
+      "memberName": "홍길동",
+      "status": "PAID",
+      "totalPrice": 60000,
+      "createdAt": "2026-05-21T09:00:00"
+    }
+  ],
+  "lowStockProducts": [
+    {
+      "id": 1,
+      "name": "포켓몬 카드 박스",
+      "price": 30000,
+      "category": "부스터 박스",
+      "series": "스칼렛&바이올렛",
+      "stockQuantity": 3,
+      "status": "ON_SALE"
+    }
+  ]
+}
+```
+
+응답 필드:
+
+- `todayOrderCount`: 오늘 생성된 주문 수
+- `todaySalesAmount`: 오늘 생성된 `PAID` 주문의 `totalPrice` 합계
+- `paymentPendingOrderCount`: `PAYMENT_PENDING` 주문 수
+- `paidOrderCount`: `PAID` 주문 수
+- `preparingOrderCount`: `PREPARING` 주문 수
+- `shippedOrderCount`: `SHIPPED` 주문 수
+- `lowStockProductCount`: `stockQuantity <= 5`이고 `HIDDEN`이 아닌 상품 수
+- `recentOrders`: 최신 주문 5개
+- `lowStockProducts`: `stockQuantity <= 5`이고 `HIDDEN`이 아닌 상품 목록
+
+`recentOrders` 항목 필드:
+
+- `id`
+- `orderUid`
+- `memberEmail`
+- `memberName`
+- `status`
+- `totalPrice`
+- `createdAt`
+
+`lowStockProducts` 항목 필드:
+
+- `id`
+- `name`
+- `price`
+- `category`
+- `series`
+- `stockQuantity`
+- `status`
+
+주요 예외:
+
+- `401 Unauthorized`
+- `403 Forbidden`
+
+## 9. 관리자 주문 API
 
 ### 전체 주문 목록 조회
 
@@ -926,7 +1009,7 @@ Response:
 - `401 Unauthorized`
 - `403 Forbidden`
 
-## 9. 관리자 결제 API
+## 10. 관리자 결제 API
 
 ### 관리자 결제 취소/환불
 
