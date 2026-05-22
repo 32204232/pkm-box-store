@@ -17,6 +17,13 @@ const initialFilters: ProductSearchParams = {
   sort: "latest"
 };
 
+const statusTabs: Array<{ label: string; value: ProductListStatus }> = [
+  { label: "전체", value: "" },
+  { label: "판매중", value: "ON_SALE" },
+  { label: "판매 예정", value: "COMING_SOON" },
+  { label: "품절", value: "SOLD_OUT" }
+];
+
 export default function ProductListPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -80,6 +87,23 @@ export default function ProductListPage() {
       </section>
 
       <section className="shop-filter-bar" aria-label="상품 검색 및 필터">
+        <div className="shop-status-tabs" aria-label="판매 상태 필터">
+          {statusTabs.map((tab) => {
+            const active = (filters.status ?? "") === tab.value;
+
+            return (
+              <button
+                key={tab.value || "all"}
+                className={active ? "shop-status-tab is-active" : "shop-status-tab"}
+                type="button"
+                onClick={() => updateFilter({ status: tab.value || undefined })}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
         <form className="shop-search" onSubmit={searchProducts}>
           <input
             className="shop-search-input"
@@ -109,18 +133,6 @@ export default function ProductListPage() {
               onChange={(event) => updateFilter({ series: event.target.value })}
               placeholder="전체"
             />
-          </label>
-          <label className="filter-chip">
-            <span>상태</span>
-            <select
-              value={filters.status ?? ""}
-              onChange={(event) => updateFilter({ status: (event.target.value as ProductListStatus) || undefined })}
-            >
-              <option value="">전체</option>
-              <option value="ON_SALE">판매중</option>
-              <option value="SOLD_OUT">품절</option>
-              <option value="COMING_SOON">입고 예정</option>
-            </select>
           </label>
           <label className="filter-stock-toggle">
             <input
