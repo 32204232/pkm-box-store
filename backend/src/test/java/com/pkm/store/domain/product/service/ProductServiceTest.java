@@ -6,9 +6,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+import com.pkm.store.domain.adminlog.service.AdminAuditLogService;
+import com.pkm.store.domain.adminlog.type.AdminAuditActionType;
+import com.pkm.store.domain.adminlog.type.AdminAuditTargetType;
 import com.pkm.store.domain.product.dto.ProductCreateRequest;
 import com.pkm.store.domain.product.dto.ProductResponse;
 import com.pkm.store.domain.product.dto.ProductSearchCondition;
+import com.pkm.store.domain.product.dto.ProductUpdateRequest;
 import com.pkm.store.domain.product.entity.Product;
 import com.pkm.store.domain.product.repository.ProductRepository;
 import com.pkm.store.domain.product.type.ProductStatus;
@@ -23,12 +27,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class ProductServiceTest {
 
     @Mock
     private ProductRepository productRepository;
+
+    @Mock
+    private AdminAuditLogService adminAuditLogService;
 
     @InjectMocks
     private ProductService productService;
@@ -58,6 +66,57 @@ class ProductServiceTest {
         assertThat(response.stockQuantity()).isEqualTo(20);
         assertThat(response.status()).isEqualTo(ProductStatus.ON_SALE);
         verify(productRepository).save(any(Product.class));
+    }
+
+    @Test
+    void createProductSavesAdminAuditLog() {
+        ProductCreateRequest request = createRequest("?ъ폆紐?移대뱶 諛뺤뒪");
+        given(productRepository.save(any(Product.class))).willAnswer(invocation -> {
+            Product product = invocation.getArgument(0);
+            ReflectionTestUtils.setField(product, "id", 1L);
+            return product;
+        });
+
+        productService.createProduct(request);
+
+        verify(adminAuditLogService).record(
+                AdminAuditActionType.PRODUCT_CREATED,
+                AdminAuditTargetType.PRODUCT,
+                1L,
+                "상품 등록: ?ъ폆紐?移대뱶 諛뺤뒪"
+        );
+    }
+
+    @Test
+    void updateProductSavesAdminAuditLog() {
+        Product product = createProduct("기존 상품", ProductStatus.ON_SALE);
+        ReflectionTestUtils.setField(product, "id", 1L);
+        given(productRepository.findById(1L)).willReturn(Optional.of(product));
+
+        productService.updateProduct(1L, createUpdateRequest("수정 상품"));
+
+        verify(adminAuditLogService).record(
+                AdminAuditActionType.PRODUCT_UPDATED,
+                AdminAuditTargetType.PRODUCT,
+                1L,
+                "상품 수정: 수정 상품"
+        );
+    }
+
+    @Test
+    void hideProductSavesAdminAuditLog() {
+        Product product = createProduct("숨김 상품", ProductStatus.ON_SALE);
+        ReflectionTestUtils.setField(product, "id", 1L);
+        given(productRepository.findById(1L)).willReturn(Optional.of(product));
+
+        productService.hideProduct(1L);
+
+        verify(adminAuditLogService).record(
+                AdminAuditActionType.PRODUCT_HIDDEN,
+                AdminAuditTargetType.PRODUCT,
+                1L,
+                "상품 숨김: 숨김 상품"
+        );
     }
 
     @Test
@@ -97,6 +156,34 @@ class ProductServiceTest {
                 20,
                 "https://example.com/product.jpg",
                 status
+        );
+    }
+
+    private ProductCreateRequest createRequest(String name) {
+        return new ProductCreateRequest(
+                name,
+                "?쒓뎅?댄뙋 ?ъ폆紐?移대뱶 諛뺤뒪",
+                BigDecimal.valueOf(30000),
+                "遺?ㅽ꽣 諛뺤뒪",
+                "?ㅼ뭡??諛붿씠?щ젢",
+                LocalDate.of(2026, 1, 1),
+                20,
+                "https://example.com/product.jpg",
+                ProductStatus.ON_SALE
+        );
+    }
+
+    private ProductUpdateRequest createUpdateRequest(String name) {
+        return new ProductUpdateRequest(
+                name,
+                "수정 설명",
+                BigDecimal.valueOf(30000),
+                "Booster Box",
+                "Scarlet Violet",
+                LocalDate.of(2026, 1, 1),
+                20,
+                "https://example.com/product.jpg",
+                ProductStatus.ON_SALE
         );
     }
 }

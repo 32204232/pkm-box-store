@@ -1,5 +1,8 @@
 package com.pkm.store.domain.order.service;
 
+import com.pkm.store.domain.adminlog.service.AdminAuditLogService;
+import com.pkm.store.domain.adminlog.type.AdminAuditActionType;
+import com.pkm.store.domain.adminlog.type.AdminAuditTargetType;
 import com.pkm.store.domain.cart.entity.CartItem;
 import com.pkm.store.domain.cart.repository.CartItemRepository;
 import com.pkm.store.domain.deliveryaddress.entity.DeliveryAddress;
@@ -39,6 +42,7 @@ public class OrderService {
     private final InventoryService inventoryService;
     private final DeliveryAddressRepository deliveryAddressRepository;
     private final ProductRepository productRepository;
+    private final AdminAuditLogService adminAuditLogService;
 
     @Transactional
     public OrderResponse createOrderFromCart(OrderCreateRequest request) {
@@ -95,6 +99,7 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
         order.changeDeliveryStatus(request.status(), request.courierCompany(), request.trackingNumber());
+        recordDeliveryStatusChange(order, request);
         return AdminOrderResponse.from(order);
     }
 
@@ -175,6 +180,37 @@ public class OrderService {
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private void recordDeliveryStatusChange(Order order, AdminOrderStatusUpdateRequest request) {
+        if (request.status() == OrderStatus.PREPARING) {
+            adminAuditLogService.record(
+                    AdminAuditActionType.ORDER_PREPARED,
+                    AdminAuditTargetType.ORDER,
+                    order.getId(),
+                    "주문 배송 준비 처리: " + order.getOrderUid()
+            );
+            return;
+        }
+        if (request.status() == OrderStatus.SHIPPED) {
+            adminAuditLogService.record(
+                    AdminAuditActionType.ORDER_SHIPPED,
+                    AdminAuditTargetType.ORDER,
+                    order.getId(),
+                    "주문 발송 처리: " + order.getOrderUid()
+                            + ", " + request.courierCompany()
+                            + ", " + request.trackingNumber()
+            );
+            return;
+        }
+        if (request.status() == OrderStatus.DELIVERED) {
+            adminAuditLogService.record(
+                    AdminAuditActionType.ORDER_DELIVERED,
+                    AdminAuditTargetType.ORDER,
+                    order.getId(),
+                    "주문 배송 완료 처리: " + order.getOrderUid()
+            );
+        }
     }
 
     private String formatAddress(String zipCode, String address1, String address2) {

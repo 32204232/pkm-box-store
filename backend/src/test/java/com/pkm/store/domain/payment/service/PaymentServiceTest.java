@@ -8,6 +8,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.pkm.store.domain.adminlog.service.AdminAuditLogService;
+import com.pkm.store.domain.adminlog.type.AdminAuditActionType;
+import com.pkm.store.domain.adminlog.type.AdminAuditTargetType;
 import com.pkm.store.domain.inventory.entity.InventoryHistory;
 import com.pkm.store.domain.inventory.repository.InventoryHistoryRepository;
 import com.pkm.store.domain.inventory.service.InventoryService;
@@ -74,6 +77,9 @@ class PaymentServiceTest {
     @Mock
     private InventoryHistoryRepository inventoryHistoryRepository;
 
+    @Mock
+    private AdminAuditLogService adminAuditLogService;
+
     private PaymentService paymentService;
     private Member member;
 
@@ -85,7 +91,8 @@ class PaymentServiceTest {
                 orderRepository,
                 memberRepository,
                 paymentClientResolver,
-                inventoryService
+                inventoryService,
+                adminAuditLogService
         );
         member = Member.create(MEMBER_EMAIL, "encoded-password", "Test Member");
         SecurityContextHolder.getContext().setAuthentication(
@@ -506,6 +513,23 @@ class PaymentServiceTest {
         assertThat(response.status()).isEqualTo(PaymentStatus.CANCELED);
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
         verify(paymentClient).cancel(any(PaymentCancelCommand.class));
+    }
+
+    @Test
+    void cancelPaymentByAdminSavesAdminAuditLog() {
+        Order order = createOrder(OrderStatus.PAID);
+        Payment payment = createApprovedPayment(order);
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+        givenPaymentCancelSuccess(payment);
+
+        paymentService.cancelPaymentByAdmin(1L, "admin request");
+
+        verify(adminAuditLogService).record(
+                AdminAuditActionType.PAYMENT_CANCELED,
+                AdminAuditTargetType.PAYMENT,
+                1L,
+                "관리자 결제 취소/환불: " + order.getOrderUid() + ", 사유: admin request"
+        );
     }
 
     @Test

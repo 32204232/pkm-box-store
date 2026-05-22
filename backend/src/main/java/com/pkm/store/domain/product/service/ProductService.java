@@ -1,5 +1,8 @@
 package com.pkm.store.domain.product.service;
 
+import com.pkm.store.domain.adminlog.service.AdminAuditLogService;
+import com.pkm.store.domain.adminlog.type.AdminAuditActionType;
+import com.pkm.store.domain.adminlog.type.AdminAuditTargetType;
 import com.pkm.store.domain.product.dto.ProductCreateRequest;
 import com.pkm.store.domain.product.dto.ProductResponse;
 import com.pkm.store.domain.product.dto.ProductSearchCondition;
@@ -21,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final AdminAuditLogService adminAuditLogService;
 
     public List<ProductResponse> getProducts() {
         return getProducts(new ProductSearchCondition(null, null, null, null, false, "latest"));
@@ -60,7 +64,14 @@ public class ProductService {
                 request.imageUrl(),
                 request.status()
         );
-        return ProductResponse.from(productRepository.save(product));
+        Product savedProduct = productRepository.save(product);
+        adminAuditLogService.record(
+                AdminAuditActionType.PRODUCT_CREATED,
+                AdminAuditTargetType.PRODUCT,
+                savedProduct.getId(),
+                "상품 등록: " + savedProduct.getName()
+        );
+        return ProductResponse.from(savedProduct);
     }
 
     @Transactional
@@ -78,6 +89,12 @@ public class ProductService {
                 request.imageUrl(),
                 request.status()
         );
+        adminAuditLogService.record(
+                AdminAuditActionType.PRODUCT_UPDATED,
+                AdminAuditTargetType.PRODUCT,
+                product.getId(),
+                "상품 수정: " + product.getName()
+        );
         return ProductResponse.from(product);
     }
 
@@ -86,6 +103,12 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
         product.hide();
+        adminAuditLogService.record(
+                AdminAuditActionType.PRODUCT_HIDDEN,
+                AdminAuditTargetType.PRODUCT,
+                product.getId(),
+                "상품 숨김: " + product.getName()
+        );
     }
 
     private Sort sortBy(String sort) {

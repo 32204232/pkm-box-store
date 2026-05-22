@@ -8,6 +8,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.pkm.store.domain.adminlog.service.AdminAuditLogService;
+import com.pkm.store.domain.adminlog.type.AdminAuditActionType;
+import com.pkm.store.domain.adminlog.type.AdminAuditTargetType;
 import com.pkm.store.domain.cart.entity.CartItem;
 import com.pkm.store.domain.cart.repository.CartItemRepository;
 import com.pkm.store.domain.deliveryaddress.entity.DeliveryAddress;
@@ -70,6 +73,9 @@ class OrderServiceTest {
     @Mock
     private ProductRepository productRepository;
 
+    @Mock
+    private AdminAuditLogService adminAuditLogService;
+
     private OrderService orderService;
     private Member member;
 
@@ -82,7 +88,8 @@ class OrderServiceTest {
                 memberRepository,
                 inventoryService,
                 deliveryAddressRepository,
-                productRepository
+                productRepository,
+                adminAuditLogService
         );
         member = Member.create(MEMBER_EMAIL, "encoded-password", "Test Member");
         SecurityContextHolder.getContext().setAuthentication(
@@ -424,6 +431,21 @@ class OrderServiceTest {
     }
 
     @Test
+    void updateAdminOrderStatusFromPaidToPreparingSavesAdminAuditLog() {
+        Order order = createOrder(OrderStatus.PAID);
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+        orderService.updateAdminOrderStatus(1L, new AdminOrderStatusUpdateRequest(OrderStatus.PREPARING));
+
+        verify(adminAuditLogService).record(
+                AdminAuditActionType.ORDER_PREPARED,
+                AdminAuditTargetType.ORDER,
+                1L,
+                "주문 배송 준비 처리: " + order.getOrderUid()
+        );
+    }
+
+    @Test
     void updateAdminOrderStatusFromPreparingToShippedSucceeds() {
         Order order = createOrder(OrderStatus.PREPARING);
         given(orderRepository.findById(1L)).willReturn(Optional.of(order));
@@ -440,6 +462,24 @@ class OrderServiceTest {
     }
 
     @Test
+    void updateAdminOrderStatusFromPreparingToShippedSavesAdminAuditLog() {
+        Order order = createOrder(OrderStatus.PREPARING);
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+        orderService.updateAdminOrderStatus(
+                1L,
+                new AdminOrderStatusUpdateRequest(OrderStatus.SHIPPED, "CJ대한통운", "1234567890")
+        );
+
+        verify(adminAuditLogService).record(
+                AdminAuditActionType.ORDER_SHIPPED,
+                AdminAuditTargetType.ORDER,
+                1L,
+                "주문 발송 처리: " + order.getOrderUid() + ", CJ대한통운, 1234567890"
+        );
+    }
+
+    @Test
     void updateAdminOrderStatusFromShippedToDeliveredSucceeds() {
         Order order = createOrder(OrderStatus.SHIPPED);
         given(orderRepository.findById(1L)).willReturn(Optional.of(order));
@@ -451,6 +491,21 @@ class OrderServiceTest {
 
         assertThat(response.status()).isEqualTo(OrderStatus.DELIVERED);
         assertThat(response.deliveredAt()).isNotNull();
+    }
+
+    @Test
+    void updateAdminOrderStatusFromShippedToDeliveredSavesAdminAuditLog() {
+        Order order = createOrder(OrderStatus.SHIPPED);
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+        orderService.updateAdminOrderStatus(1L, new AdminOrderStatusUpdateRequest(OrderStatus.DELIVERED));
+
+        verify(adminAuditLogService).record(
+                AdminAuditActionType.ORDER_DELIVERED,
+                AdminAuditTargetType.ORDER,
+                1L,
+                "주문 배송 완료 처리: " + order.getOrderUid()
+        );
     }
 
     @Test
@@ -558,6 +613,7 @@ class OrderServiceTest {
     private Order createOrder(OrderStatus status) {
         Order order = Order.create(member, "Test Member", "010-1234-5678", "Seoul");
         order.addOrderItem(OrderItem.create(createProduct(ProductStatus.ON_SALE, 5), 1));
+        ReflectionTestUtils.setField(order, "id", 1L);
         ReflectionTestUtils.setField(order, "status", status);
         return order;
     }

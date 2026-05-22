@@ -1,5 +1,8 @@
 package com.pkm.store.domain.payment.service;
 
+import com.pkm.store.domain.adminlog.service.AdminAuditLogService;
+import com.pkm.store.domain.adminlog.type.AdminAuditActionType;
+import com.pkm.store.domain.adminlog.type.AdminAuditTargetType;
 import com.pkm.store.domain.inventory.service.InventoryService;
 import com.pkm.store.domain.member.entity.Member;
 import com.pkm.store.domain.member.repository.MemberRepository;
@@ -36,6 +39,7 @@ public class PaymentService {
     private final MemberRepository memberRepository;
     private final PaymentClientResolver paymentClientResolver;
     private final InventoryService inventoryService;
+    private final AdminAuditLogService adminAuditLogService;
 
     @Transactional
     public PaymentResponse confirmPayment(PaymentConfirmRequest request) {
@@ -106,7 +110,17 @@ public class PaymentService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
-        return cancelPaidOrder(order, cancelReason);
+        boolean alreadyCanceled = order.getStatus() == OrderStatus.CANCELED;
+        PaymentResponse response = cancelPaidOrder(order, cancelReason);
+        if (!alreadyCanceled) {
+            adminAuditLogService.record(
+                    AdminAuditActionType.PAYMENT_CANCELED,
+                    AdminAuditTargetType.PAYMENT,
+                    response.paymentId(),
+                    "관리자 결제 취소/환불: " + order.getOrderUid() + ", 사유: " + normalizeCancelReason(cancelReason)
+            );
+        }
+        return response;
     }
 
     private PaymentResponse cancelPaidOrder(Order order, String cancelReason) {
@@ -201,6 +215,13 @@ public class PaymentService {
             return "PAYMENT_CANCELED";
         }
         return "PAYMENT_CANCELED: " + cancelReason;
+    }
+
+    private String normalizeCancelReason(String cancelReason) {
+        if (cancelReason == null || cancelReason.isBlank()) {
+            return "미입력";
+        }
+        return cancelReason;
     }
 
     private Member getCurrentMember() {
