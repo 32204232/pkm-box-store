@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pkm.store.domain.product.dto.ProductCreateRequest;
 import com.pkm.store.domain.product.dto.ProductResponse;
+import com.pkm.store.domain.product.dto.ProductSearchCondition;
 import com.pkm.store.domain.product.service.ProductService;
 import com.pkm.store.domain.product.type.ProductStatus;
 import com.pkm.store.global.jwt.JwtAuthenticationFilter;
@@ -48,7 +49,7 @@ class ProductSecurityTest {
 
     @Test
     void getProductsIsAllowedWithoutAuthentication() throws Exception {
-        given(productService.getProducts()).willReturn(List.of());
+        given(productService.getProducts(any(ProductSearchCondition.class))).willReturn(List.of());
 
         mockMvc.perform(get("/api/products"))
                 .andExpect(status().isOk());

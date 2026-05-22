@@ -16,6 +16,28 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     Optional<Product> findByIdAndStatusNot(Long id, ProductStatus status);
 
+    @Query("""
+            select p
+            from Product p
+            where p.status <> :hiddenStatus
+              and (:keyword is null
+                   or lower(p.name) like lower(concat('%', :keyword, '%'))
+                   or lower(p.description) like lower(concat('%', :keyword, '%')))
+              and (:category is null or p.category = :category)
+              and (:series is null or p.series = :series)
+              and (:status is null or p.status = :status)
+              and (:inStockOnly = false or p.stockQuantity > 0)
+            """)
+    List<Product> searchProducts(
+            @Param("keyword") String keyword,
+            @Param("category") String category,
+            @Param("series") String series,
+            @Param("status") ProductStatus status,
+            @Param("inStockOnly") boolean inStockOnly,
+            @Param("hiddenStatus") ProductStatus hiddenStatus,
+            org.springframework.data.domain.Sort sort
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Product p where p.id = :id")
     Optional<Product> findByIdWithPessimisticWriteLock(@Param("id") Long id);

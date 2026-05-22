@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 
 import com.pkm.store.domain.product.dto.ProductCreateRequest;
 import com.pkm.store.domain.product.dto.ProductResponse;
+import com.pkm.store.domain.product.dto.ProductSearchCondition;
 import com.pkm.store.domain.product.entity.Product;
 import com.pkm.store.domain.product.repository.ProductRepository;
 import com.pkm.store.domain.product.type.ProductStatus;
@@ -16,6 +17,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Sort;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -61,15 +63,18 @@ class ProductServiceTest {
     @Test
     void getProductsExcludesHiddenProducts() {
         Product product = createProduct("판매 상품", ProductStatus.ON_SALE);
-        given(productRepository.findAllByStatusNotOrderByCreatedAtDesc(ProductStatus.HIDDEN))
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        given(productRepository.searchProducts(null, null, null, null, false, ProductStatus.HIDDEN, sort))
                 .willReturn(List.of(product));
 
-        List<ProductResponse> responses = productService.getProducts();
+        List<ProductResponse> responses = productService.getProducts(
+                new ProductSearchCondition(null, null, null, null, false, "latest")
+        );
 
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).name()).isEqualTo("판매 상품");
         assertThat(responses.get(0).status()).isNotEqualTo(ProductStatus.HIDDEN);
-        verify(productRepository).findAllByStatusNotOrderByCreatedAtDesc(ProductStatus.HIDDEN);
+        verify(productRepository).searchProducts(null, null, null, null, false, ProductStatus.HIDDEN, sort);
     }
 
     @Test

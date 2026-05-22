@@ -2,6 +2,7 @@ package com.pkm.store.domain.product.service;
 
 import com.pkm.store.domain.product.dto.ProductCreateRequest;
 import com.pkm.store.domain.product.dto.ProductResponse;
+import com.pkm.store.domain.product.dto.ProductSearchCondition;
 import com.pkm.store.domain.product.dto.ProductUpdateRequest;
 import com.pkm.store.domain.product.entity.Product;
 import com.pkm.store.domain.product.repository.ProductRepository;
@@ -10,6 +11,7 @@ import com.pkm.store.global.exception.BusinessException;
 import com.pkm.store.global.exception.ErrorCode;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +23,19 @@ public class ProductService {
     private final ProductRepository productRepository;
 
     public List<ProductResponse> getProducts() {
-        return productRepository.findAllByStatusNotOrderByCreatedAtDesc(ProductStatus.HIDDEN)
+        return getProducts(new ProductSearchCondition(null, null, null, null, false, "latest"));
+    }
+
+    public List<ProductResponse> getProducts(ProductSearchCondition condition) {
+        return productRepository.searchProducts(
+                        condition.keyword(),
+                        condition.category(),
+                        condition.series(),
+                        condition.status(),
+                        condition.inStockOnly(),
+                        ProductStatus.HIDDEN,
+                        sortBy(condition.sort())
+                )
                 .stream()
                 .map(ProductResponse::from)
                 .toList();
@@ -72,5 +86,15 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
         product.hide();
+    }
+
+    private Sort sortBy(String sort) {
+        return switch (sort) {
+            case "priceAsc" -> Sort.by(Sort.Direction.ASC, "price").and(Sort.by(Sort.Direction.DESC, "createdAt"));
+            case "priceDesc" -> Sort.by(Sort.Direction.DESC, "price").and(Sort.by(Sort.Direction.DESC, "createdAt"));
+            case "releaseDateDesc" -> Sort.by(Sort.Direction.DESC, "releaseDate").and(Sort.by(Sort.Direction.DESC, "createdAt"));
+            case "latest" -> Sort.by(Sort.Direction.DESC, "createdAt");
+            default -> Sort.by(Sort.Direction.DESC, "createdAt");
+        };
     }
 }

@@ -2,8 +2,10 @@ package com.pkm.store.domain.product.controller;
 
 import com.pkm.store.domain.product.dto.ProductCreateRequest;
 import com.pkm.store.domain.product.dto.ProductResponse;
+import com.pkm.store.domain.product.dto.ProductSearchCondition;
 import com.pkm.store.domain.product.dto.ProductUpdateRequest;
 import com.pkm.store.domain.product.service.ProductService;
+import com.pkm.store.domain.product.type.ProductStatus;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -26,8 +29,17 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping("/products")
-    public ResponseEntity<List<ProductResponse>> getProducts() {
-        return ResponseEntity.ok(productService.getProducts());
+    public ResponseEntity<List<ProductResponse>> getProducts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String series,
+            @RequestParam(required = false) ProductStatus status,
+            @RequestParam(defaultValue = "false") boolean inStockOnly,
+            @RequestParam(defaultValue = "latest") String sort
+    ) {
+        return ResponseEntity.ok(productService.getProducts(
+                new ProductSearchCondition(keyword, category, series, status, inStockOnly, sort)
+        ));
     }
 
     @GetMapping("/products/{id}")
