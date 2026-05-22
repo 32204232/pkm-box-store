@@ -153,66 +153,28 @@ export default function AdminProductsPage() {
     <RequireAuth requireRole="ROLE_ADMIN">
       <div className="stack">
         <div className="section-header">
-          <h1>관리자 상품 관리</h1>
+          <div>
+            <h1>관리자 상품 관리</h1>
+            <p>상품 등록, 수정, 이미지 업로드와 숨김 처리를 관리합니다.</p>
+          </div>
         </div>
         <Message message={message} />
-        <div className="split">
-          <div className="table-wrap">
-            {loading ? (
-              <div className="alert">상품 목록을 불러오고 있습니다.</div>
-            ) : products.length === 0 ? (
-              <div className="alert">등록된 상품이 없습니다.</div>
-            ) : (
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>상품</th>
-                    <th>상태</th>
-                    <th>가격</th>
-                    <th>재고</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map((product) => (
-                    <tr key={product.id}>
-                      <td>{product.name}</td>
-                      <td>
-                        <StatusBadge value={product.status} />
-                      </td>
-                      <td>{formatPrice(product.price)}</td>
-                      <td>{product.stockQuantity}</td>
-                      <td>
-                        <div className="action-group">
-                          <button className="button" type="button" onClick={() => startEdit(product)}>
-                            수정
-                          </button>
-                          <button
-                            className="button danger"
-                            type="button"
-                            onClick={() => hideProduct(product.id)}
-                            disabled={hidingProductId === product.id}
-                          >
-                            숨김
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-          <form className="card" onSubmit={submit}>
-            <div className="card-body form">
-              <div className="row">
-                <strong>{isEditMode ? "상품 수정" : "상품 등록"}</strong>
+        <div className="admin-products-layout">
+          <form className="card admin-product-form-card" onSubmit={submit}>
+            <div className="card-body form admin-product-form">
+              <div className="admin-product-mode">
+                <div>
+                  <span className="badge">{isEditMode ? "수정 모드" : "등록 모드"}</span>
+                  <strong>{isEditMode ? "상품 정보를 수정합니다." : "새 상품을 등록합니다."}</strong>
+                  <p>{isEditMode ? "수정 후 저장하거나 취소해서 등록 모드로 돌아갈 수 있습니다." : "필수 정보를 입력한 뒤 상품을 등록하세요."}</p>
+                </div>
                 {isEditMode && (
-                  <button className="button" type="button" onClick={cancelEdit} disabled={submitting}>
+                  <button className="button admin-product-cancel-edit" type="button" onClick={cancelEdit} disabled={submitting}>
                     수정 취소
                   </button>
                 )}
               </div>
+
               <label>
                 상품명
                 <input className="input" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
@@ -264,27 +226,35 @@ export default function AdminProductsPage() {
                   onChange={(event) => setForm({ ...form, stockQuantity: Number(event.target.value) })}
                 />
               </label>
-              <label>
-                이미지 파일
-                <input className="input" type="file" accept={allowedImageExtensions} onChange={selectImage} />
-                <span className="muted">허용 확장자: jpg, jpeg, png, webp</span>
-              </label>
-              <button className="button" type="button" onClick={uploadImage} disabled={uploading || !selectedImage}>
-                {uploading ? "업로드 중..." : "이미지 업로드"}
-              </button>
-              <label>
-                이미지 URL
-                <input
-                  className="input"
-                  value={form.imageUrl}
-                  onChange={(event) => setForm({ ...form, imageUrl: event.target.value })}
-                />
-              </label>
-              {form.imageUrl && (
-                <div className="product-image">
-                  <Image src={form.imageUrl} alt="상품 이미지 미리보기" fill sizes="320px" unoptimized />
+
+              <div className="admin-product-image-section">
+                <div className="admin-product-section-title">
+                  <strong>상품 이미지</strong>
+                  <p>이미지 파일을 업로드하거나 이미지 URL을 직접 입력할 수 있습니다.</p>
                 </div>
-              )}
+                <label>
+                  이미지 파일
+                  <input className="input" type="file" accept={allowedImageExtensions} onChange={selectImage} />
+                  <span className="muted">허용 확장자: jpg, jpeg, png, webp</span>
+                </label>
+                <button className="button admin-product-upload-button" type="button" onClick={uploadImage} disabled={uploading || !selectedImage}>
+                  {uploading ? "업로드 중..." : "이미지 업로드"}
+                </button>
+                <label>
+                  이미지 URL
+                  <input
+                    className="input"
+                    value={form.imageUrl}
+                    onChange={(event) => setForm({ ...form, imageUrl: event.target.value })}
+                  />
+                </label>
+                {form.imageUrl && (
+                  <div className="product-image admin-product-preview">
+                    <Image src={form.imageUrl} alt="상품 이미지 미리보기" fill sizes="320px" unoptimized />
+                  </div>
+                )}
+              </div>
+
               <label>
                 상태
                 <select
@@ -297,11 +267,72 @@ export default function AdminProductsPage() {
                   ))}
                 </select>
               </label>
-              <button className="button primary" disabled={submitting}>
-                {isEditMode ? "수정 저장" : "등록"}
+              <button className="button primary admin-product-submit" disabled={submitting}>
+                {submitting ? "저장 중..." : isEditMode ? "수정 저장" : "상품 등록"}
               </button>
             </div>
           </form>
+
+          <section className="admin-products-list">
+            <div className="admin-products-list-header">
+              <div>
+                <h2>상품 목록</h2>
+                <p>상품을 선택해 수정하거나 숨김 처리할 수 있습니다.</p>
+              </div>
+              <strong>{products.length}개</strong>
+            </div>
+            <div className="table-wrap admin-products-table-wrap">
+              {loading ? (
+                <div className="alert admin-products-empty">상품 목록을 불러오고 있습니다.</div>
+              ) : products.length === 0 ? (
+                <div className="alert admin-products-empty">등록된 상품이 없습니다.</div>
+              ) : (
+                <table className="table admin-products-table">
+                  <thead>
+                    <tr>
+                      <th>상품명</th>
+                      <th>가격</th>
+                      <th>재고</th>
+                      <th>상태</th>
+                      <th>관리</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {products.map((product) => (
+                      <tr key={product.id}>
+                        <td>
+                          <strong>{product.name}</strong>
+                          <span className="muted">{product.category} / {product.series}</span>
+                        </td>
+                        <td>
+                          <strong>{formatPrice(product.price)}</strong>
+                        </td>
+                        <td>{product.stockQuantity}</td>
+                        <td>
+                          <StatusBadge value={product.status} />
+                        </td>
+                        <td>
+                          <div className="admin-products-actions">
+                            <button className="button" type="button" onClick={() => startEdit(product)} disabled={submitting}>
+                              수정
+                            </button>
+                            <button
+                              className="button danger admin-products-hide-button"
+                              type="button"
+                              onClick={() => hideProduct(product.id)}
+                              disabled={hidingProductId === product.id}
+                            >
+                              {hidingProductId === product.id ? "처리 중..." : "숨김"}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </section>
         </div>
       </div>
     </RequireAuth>
