@@ -16,6 +16,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     Optional<Product> findByIdAndStatusNot(Long id, ProductStatus status);
 
+    long countByStockQuantityLessThanEqualAndStatusNot(int stockQuantity, ProductStatus status);
+
+    List<Product> findAllByStockQuantityLessThanEqualAndStatusNotOrderByStockQuantityAscCreatedAtDesc(
+            int stockQuantity,
+            ProductStatus status
+    );
+
     @Query("""
             select p
             from Product p
