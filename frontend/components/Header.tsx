@@ -32,24 +32,35 @@ export function Header() {
       <Link className="brand" href="/">
         PKM Box Store
       </Link>
-      <nav className="nav">
-        <Link href="/">상품</Link>
-        {loggedIn && <Link href="/cart">장바구니</Link>}
-        {loggedIn && <Link href="/orders">주문</Link>}
-        {role === "ROLE_ADMIN" && <Link href="/admin">관리자 대시보드</Link>}
-        {role === "ROLE_ADMIN" && <Link href="/admin/products">관리자 상품</Link>}
-        {role === "ROLE_ADMIN" && <Link href="/admin/orders">관리자 주문</Link>}
-        {role === "ROLE_ADMIN" && <Link href="/admin/audit-logs">감사 로그</Link>}
-        {loggedIn ? (
-          <button className="nav-button" type="button" onClick={logout}>
-            로그아웃
-          </button>
-        ) : (
-          <>
-            <Link href="/login">로그인</Link>
-            <Link href="/signup">회원가입</Link>
-          </>
+      <nav className="nav" aria-label="주요 메뉴">
+        <div className="nav-main">
+          <Link href="/">Shop</Link>
+          {loggedIn && <Link href="/cart">Cart</Link>}
+          {loggedIn && <Link href="/orders">Orders</Link>}
+        </div>
+
+        {role === "ROLE_ADMIN" && (
+          <div className="nav-admin" aria-label="관리자 메뉴">
+            <span className="nav-admin-label">Admin</span>
+            <Link href="/admin">Dashboard</Link>
+            <Link href="/admin/products">Products</Link>
+            <Link href="/admin/orders">Orders</Link>
+            <Link href="/admin/audit-logs">Audit Logs</Link>
+          </div>
         )}
+
+        <div className="nav-auth">
+          {loggedIn ? (
+            <button className="nav-button" type="button" onClick={logout}>
+              Logout
+            </button>
+          ) : (
+            <>
+              <Link href="/login">Login</Link>
+              <Link href="/signup">Join</Link>
+            </>
+          )}
+        </div>
       </nav>
     </header>
   );
