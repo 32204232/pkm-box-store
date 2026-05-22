@@ -12,77 +12,66 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 ## 현재 구현 완료 기능
 
 - 회원가입, 로그인, JWT 기반 인증
-- 상품 목록/상세 조회
-- 상품 검색/필터/정렬
-  - `keyword`, `category`, `series`, `status`, `inStockOnly`, `sort`
-  - 일반 목록에서 `HIDDEN` 상품 제외
+- 토큰 만료 또는 유효하지 않은 토큰 감지 시 access token 삭제, 로그인 페이지 이동, 만료 안내 표시
+- 상품 목록/상세 조회, 검색/필터/정렬
 - 관리자 상품 등록, 수정, 숨김 처리
 - 관리자 S3 이미지 업로드
+  - 허용 확장자와 MIME 검증
+  - 5MB 초과, 빈 파일, 확장자/MIME 불일치 거부
+  - S3 key는 `products/{uuid}.{extension}` 형식으로 생성
 - 장바구니 조회, 담기, 수량 변경, 삭제, 비우기 API
-- 배송지 관리
-  - 배송지 목록, 추가, 수정, 삭제, 기본 배송지 설정
-- 장바구니 기반 주문 생성
-- 배송지 선택 주문 생성
+- 배송지 목록, 추가, 수정, 삭제, 기본 배송지 설정
+- 장바구니 기반 주문 생성 및 배송지 선택 주문 생성
 - 일반 사용자 주문 목록/상세 조회
 - 주문 생성 후 결제 대기 페이지 이동
-- Toss 테스트 키 기반 결제 E2E 검증 완료
-  - Toss 결제창 정상 호출
-  - 결제 성공 후 `/payments/success` 복귀
-  - 결제 승인 API 호출
-  - 주문 상태 `PAID` 변경
-  - 관리자 주문 페이지에서 결제 완료 주문 확인 가능
-- 결제 실패/취소 흐름
-  - 결제 대기 페이지 취소
-  - Toss 실패/취소 리다이렉트 후 실패 처리
-  - 실패/취소 시 예약 재고 복구
-- 결제 취소/환불 API
-  - 사용자: `POST /api/payments/cancel`
-  - 관리자: `POST /api/admin/payments/cancel`
-- 관리자 결제 취소/환불 UI
-- 관리자 주문 목록/상세 조회
-- 배송/운송장 관리
-  - `PAID -> PREPARING`
-  - `PREPARING -> SHIPPED` 시 택배사/운송장 번호 저장
-  - `SHIPPED -> DELIVERED`
-- 관리자 대시보드 API
-  - `GET /api/admin/dashboard`
-- 관리자 대시보드 프론트
-  - `/admin`
-  - 오늘 주문 수, 오늘 매출, 상태별 주문 수, 최근 주문, 재고 부족 상품
-- 관리자 UX 1차 정리
-  - 관리자 대시보드, 상품 관리, 주문 상세 화면 정보 구조 개선
-- 사용자 구매 흐름 UX 1차 정리
-  - 상품 상세, 장바구니/주문 생성, 결제 대기, 결제 성공/실패, 주문 상세 화면 개선
-- 주문 만료 스케줄러
+- Toss 결제 승인/실패/취소/환불 흐름
+- 결제 승인/취소 멱등성 강화
+  - 동일 승인 재요청은 같은 `paymentKey`, `providerOrderId`, `amount`일 때 기존 결제 반환
+  - 같은 주문에 다른 결제 키 또는 provider 주문번호가 들어오면 예외
+  - 중복 취소 요청은 재고 복구 이력이 중복 저장되지 않도록 처리
 - 재고 예약, 확정, 해제 이력 기록
-- 재고 동시성 락
-  - 주문 생성 시 상품 조회에 pessimistic write lock 사용
+- 주문 생성 시 상품 조회에 pessimistic write lock 사용
+- 주문 만료 처리
+- 관리자 주문 목록/상세 조회
+- 관리자 배송 상태 변경
+  - `PAID -> PREPARING`
+  - `PREPARING -> SHIPPED`
+  - `SHIPPED -> DELIVERED`
+- 관리자 결제 취소/환불
+- 관리자 대시보드 API 및 프론트 페이지
+- 관리자 작업 감사 로그 저장
+  - 상품 등록/수정/숨김
+  - 주문 배송 준비/발송/완료
+  - 관리자 결제 취소/환불
+- 관리자 감사 로그 조회 API와 `/admin/audit-logs` 페이지
+- CORS 허용 Origin 환경변수화
+  - `CORS_ALLOWED_ORIGINS`
+  - 쉼표 구분, trim, 빈 값 제외
+- Secret 관리 점검
+  - `.env`, `.env.local`, `.env.*.local` ignore 보강
+  - 실제 키 값은 문서와 예시 파일에 기록하지 않음
 
 ## 백엔드 구현 상태
 
 - 도메인 구성:
   - `member`: 회원, 로그인, JWT 인증
-  - `product`: 상품, 상품 검색/필터/정렬, 관리자 상품 관리
+  - `product`: 상품, 검색/필터/정렬, 관리자 상품 관리
   - `cart`: 장바구니
   - `deliveryaddress`: 배송지 관리
   - `order`: 주문 생성, 조회, 관리자 주문/배송 관리, 만료 처리
-  - `payment`: Toss 승인, 실패, 취소/환불 처리
+  - `payment`: Toss 승인, 실패, 취소/환불 처리, 멱등성 방어
   - `inventory`: 재고 증감 및 이력
   - `dashboard`: 관리자 대시보드
-  - `s3`: 관리자 이미지 업로드
+  - `adminlog`: 관리자 감사 로그
+  - `s3`: 관리자 이미지 업로드 및 업로드 파일 검증
 - 인증/인가:
   - 일반 상품 조회와 회원가입/로그인은 공개
   - `/api/admin/**`는 관리자 권한 필요
   - 그 외 API는 로그인 필요
-- 결제:
-  - Toss 승인 API 호출 구현
-  - Toss 취소 API 호출 구현
-  - 결제 금액/주문 UID 검증 구현
-- 재고:
-  - 주문 생성 시 재고 예약 차감
-  - 결제 성공 시 예약 확정
-  - 결제 실패, 결제 취소/환불, 주문 만료 시 재고 복구
-  - 주문 생성 시 pessimistic write lock으로 동시성 보강
+- 보안/운영 설정:
+  - JWT 인증 필터 적용
+  - CORS origin은 `CORS_ALLOWED_ORIGINS`로 설정
+  - Secret 값은 환경변수로 주입
 
 ## 프론트엔드 구현 상태
 
@@ -104,31 +93,33 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
   - `/admin/products`
   - `/admin/orders`
   - `/admin/orders/[id]`
+  - `/admin/audit-logs`
 - 공통:
   - `RequireAuth`로 로그인/관리자 접근 제어
-  - Header에서 관리자 대시보드, 관리자 상품, 관리자 주문 링크 제공
+  - Header에서 관리자 대시보드, 상품, 주문, 감사 로그 링크 제공
   - API 클라이언트는 `frontend/lib/api.ts`
+  - 401 응답 시 토큰 삭제, `/login?reason=expired` 이동, 만료 안내 표시
   - 가격/날짜 포맷 유틸 사용
   - 주요 중복 클릭 버튼 disabled 처리
-  - loading, empty, error 상태 일부 보강
+  - loading, empty, error 상태 보강
 
 ## 결제/주문/재고 흐름 요약
 
 1. 사용자가 상품을 장바구니에 담는다.
-2. `/cart`에서 직접 배송 정보를 입력하거나 저장된 배송지를 선택해 주문을 생성한다.
+2. `/cart`에서 배송 정보를 입력하거나 저장된 배송지를 선택해 주문을 생성한다.
 3. 백엔드는 주문을 `PAYMENT_PENDING`으로 만들고 재고를 예약 차감한다.
 4. 프론트는 `/orders/{orderId}/payment`로 이동한다.
-5. 결제하기 클릭 시 Toss 결제창을 연다.
-6. Toss 결제창 `orderId`에는 내부 DB ID가 아니라 주문 `orderUid`를 전달한다.
-7. 결제 성공 후 `/payments/success`로 돌아오며, 프론트는 `paymentKey`, Toss `orderId`, `amount`, `internalOrderId`를 구분해 처리한다.
-8. `api.confirmPayment` 성공 시 주문은 `PAID`, 결제는 `APPROVED`, 재고 이력은 `CONFIRMED`가 된다.
+5. Toss 결제창 `orderId`에는 내부 DB ID가 아니라 주문 `orderUid`를 전달한다.
+6. 결제 성공 후 프론트는 `paymentKey`, Toss `orderId`, `amount`, `internalOrderId`를 구분해 승인 API를 호출한다.
+7. 승인 성공 시 주문은 `PAID`, 결제는 `APPROVED`, 재고 이력은 `CONFIRMED`가 된다.
+8. 중복 승인 요청은 같은 `paymentKey`, `providerOrderId`, `amount`이면 기존 결제 응답을 반환하고, 다른 값이면 예외가 발생한다.
 9. 결제 실패/취소 리다이렉트 또는 결제 대기 페이지 취소 시 실패 처리를 호출한다.
-10. 실패/취소 처리 후 주문은 `FAILED`, 재고는 복구되고 이력은 `RELEASED`가 된다.
+10. 실패 처리 후 주문은 `FAILED`, 재고는 복구되고 이력은 `RELEASED`가 된다.
 11. 사용자 또는 관리자가 `PAID` 주문을 결제 취소/환불하면 Toss 취소 API를 호출한다.
 12. 환불 성공 후 주문은 `CANCELED`, 결제는 `CANCELED`, 재고는 복구되고 이력은 `RELEASED`가 된다.
-13. 관리자는 `PAID -> PREPARING -> SHIPPED -> DELIVERED` 순서로 배송 상태를 변경한다.
-14. `SHIPPED` 처리 시 택배사와 운송장 번호가 저장되고 `shippedAt`이 채워진다.
-15. `DELIVERED` 처리 시 `deliveredAt`이 채워진다.
+13. 중복 취소 요청은 기존 취소 결과를 반환하되 재고 복구와 `RELEASED` 이력이 중복 처리되지 않는다.
+14. 관리자는 `PAID -> PREPARING -> SHIPPED -> DELIVERED` 순서로 배송 상태를 변경한다.
+15. 관리자 상품/주문/결제 운영 작업은 감사 로그로 저장된다.
 
 ## 로컬 테스트 전 확인할 것
 
@@ -140,46 +131,44 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
   - `DB_PASSWORD`
   - `JWT_SECRET`
   - `TOSS_PAYMENTS_SECRET_KEY`
-  - S3 관련 AWS 환경변수
+  - `CORS_ALLOWED_ORIGINS`
+  - `AWS_S3_BUCKET`
+  - `AWS_REGION`
+  - `AWS_ACCESS_KEY_ID`
+  - `AWS_SECRET_ACCESS_KEY`
 - 프론트엔드 `frontend/.env.local` 확인:
-  - `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080`
+  - `NEXT_PUBLIC_API_BASE_URL`
   - `NEXT_PUBLIC_TOSS_CLIENT_KEY`
-- Toss 테스트 키 확인:
-  - 백엔드에는 `TOSS_PAYMENTS_SECRET_KEY`가 필요하다.
-  - 프론트에는 `NEXT_PUBLIC_TOSS_CLIENT_KEY`가 필요하다.
-  - 두 키는 같은 Toss 테스트 상점의 Secret Key와 Client Key여야 한다.
-- S3 실제 테스트를 하지 않더라도 로컬 부팅을 위해 AWS 더미 환경변수가 필요할 수 있다.
-- Secret 관리 확인:
-  - `.env`, `.env.local`, `.env.*.local`은 Git에 커밋하지 않는다.
-  - `backend/.env.example`, `frontend/.env.example`에는 실제 키 값 대신 빈 값 또는 placeholder만 둔다.
-  - Toss Secret Key, Toss Client Key, AWS Access Key, DB 비밀번호, JWT Secret은 로컬/배포 환경변수로만 주입한다.
+- Secret 값은 `.env`, `.env.local`, 문서, 커밋에 남기지 않는다.
 - 관리자 테스트 계정은 DB에서 `ROLE_ADMIN`으로 변경 후 재로그인 필요
 - 상세 흐름은 `docs/local-test-checklist.md` 기준으로 확인
 
-## 실제 운영 전 반드시 보강할 것
+## 운영 안정성 보강 현황
 
-- 운영 Toss 키 전환
-- Secret 관리 체계 점검
-  - 운영/스테이징 Secret은 배포 플랫폼 또는 Secret Manager로 관리
-  - Git index에 실제 `.env` 또는 `.env.local`이 추적되지 않는지 확인
-  - 키 노출 시 즉시 폐기/재발급 절차 준비
-- 실제 결제/취소 멱등성 강화
+완료:
+
+- 결제 승인/취소 멱등성 강화
+- 관리자 작업 감사 로그 저장 및 조회 페이지
+- 토큰 만료 UX 개선
+- CORS 허용 Origin 환경변수화
+- S3 이미지 업로드 검증 강화
+- Secret 관리 점검 및 `.gitignore` 보강
+
+남은 보강 후보:
+
+- 운영 Toss 키 전환 및 키 보관 체계 확정
+- 운영/스테이징 Secret Manager 또는 배포 플랫폼 Secret 설정
+- S3 운영 버킷 권한 정책 최소화
+- refresh token 도입 여부 검토
 - 주문 상태와 결제 상태/배송 상태 분리 검토
-- refresh token 또는 토큰 만료 UX
-- 운영 CORS 도메인 분리
-- S3 실제 권한 정책
-- 배포 환경변수 관리
-- 로그/모니터링
-- 관리자 작업 감사 로그
-- 비밀번호 변경/재설정
 - 운영 DB 마이그레이션 전략
+- 로그/모니터링 및 장애 알림
 - 주문/결제 실패 재처리 정책
 - 민감 정보와 API 응답 과노출 방지 점검
 
 ## 다음 추천 작업 순서
 
 1. `docs/local-test-checklist.md` 기준으로 로컬 전체 흐름을 반복 검증한다.
-2. 결제 승인/취소 멱등성과 중복 요청 방어를 강화한다.
-3. 주문 상태와 결제 상태/배송 상태 분리 여부를 설계한다.
-4. 토큰 만료 UX와 refresh token 도입 여부를 결정한다.
-5. 운영 배포 전 CORS, S3 권한, 환경변수, 로그/모니터링을 정리한다.
+2. 운영/스테이징 환경변수와 Secret 주입 방식을 확정한다.
+3. 운영 S3 권한, CORS 도메인, Toss 키 전환 절차를 점검한다.
+4. 로그/모니터링과 결제 실패 재처리 정책을 정리한다.

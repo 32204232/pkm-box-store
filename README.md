@@ -42,14 +42,17 @@ Spring Boot는 기본적으로 `.env` 파일을 자동 로드하지 않으므로
 - `DB_PASSWORD`
 - `JWT_SECRET`
 - `TOSS_PAYMENTS_SECRET_KEY`
+- `CORS_ALLOWED_ORIGINS`
 - `AWS_S3_BUCKET`
 - `AWS_REGION`
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
 
-Toss 테스트 결제를 하려면 Toss 개발자센터에서 발급받은 같은 테스트 상점의 `test_sk` Secret Key와 `test_ck` Client Key를 각각 백엔드와 프론트엔드 환경변수로 설정합니다. 실제 키 값은 README, 예시 파일, 커밋 이력에 남기지 않습니다.
+Toss 테스트 결제를 하려면 Toss 개발자센터에서 발급받은 같은 테스트 상점의 Secret Key와 Client Key를 각각 백엔드와 프론트엔드 환경변수로 설정합니다. 실제 키 값은 README, 예시 파일, 커밋 이력에 남기지 않습니다.
 
 S3 실제 업로드를 테스트하지 않더라도 로컬 부팅을 위해 AWS/S3 환경변수에 더미 값이 필요할 수 있습니다. 실제 업로드 테스트에는 유효한 버킷, 리전, 접근 키, 권한 정책이 필요하며, AWS Access Key와 Secret Access Key는 커밋하지 않습니다.
+
+CORS 허용 Origin은 `CORS_ALLOWED_ORIGINS`로 설정합니다. 여러 Origin은 쉼표로 구분하고, 로컬 기본값은 `http://localhost:3000`입니다.
 
 ### 2. MySQL 준비
 
@@ -122,4 +125,4 @@ Toss 테스트 결제를 하려면 다음 두 값이 필요합니다.
 
 키 값은 Toss 개발자센터에서 발급받아 로컬 환경변수에만 저장하고, `.env`, `.env.local`, 문서, 커밋에는 남기지 않습니다.
 
-브라우저에서 `http://localhost:3000`에 접속합니다. 자세한 쇼핑몰 흐름 테스트는 [docs/local-test-checklist.md](docs/local-test-checklist.md)를 참고하세요.
+브라우저에서 `http://localhost:3000`에 접속합니다. 결제 멱등성, 감사 로그, 토큰 만료, CORS, S3 업로드 검증 등 상세 테스트는 [docs/local-test-checklist.md](docs/local-test-checklist.md)를 참고하세요.

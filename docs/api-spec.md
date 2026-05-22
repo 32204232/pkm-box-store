@@ -288,9 +288,19 @@ Response:
 
 ```json
 {
-  "imageUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/images/uuid.png"
+  "imageUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/products/{uuid}.png"
 }
 ```
+
+업로드 검증:
+
+- 허용 확장자: `jpg`, `jpeg`, `png`, `webp`
+- 허용 MIME 타입: `image/jpeg`, `image/png`, `image/webp`
+- 최대 크기: 5MB
+- 빈 파일은 거부한다.
+- 원본 파일명이 비어 있거나 확장자가 없으면 거부한다.
+- 확장자와 MIME 타입이 일치하지 않으면 거부한다.
+- S3 key는 원본 파일명을 사용하지 않고 `products/{uuid}.{extension}` 형식으로 생성한다.
 
 주요 예외:
 
@@ -737,6 +747,9 @@ Toss 결제창 호출 시 주의:
 - `providerOrderId`가 내부 주문의 `orderUid`와 일치해야 한다.
 - `amount`가 내부 주문의 `totalPrice`와 일치해야 한다.
 - 이미 승인된 결제는 중복 승인하지 않아야 한다.
+- 주문이 이미 `PAID`이고 `APPROVED` 결제가 존재하는 경우, 같은 `paymentKey`, `providerOrderId`, `amount` 요청이면 기존 결제 응답을 반환한다.
+- 같은 주문에 다른 `paymentKey` 또는 다른 `providerOrderId`가 들어오면 예외가 발생한다.
+- 중복 승인 요청에서는 `CONFIRMED` 재고 이력이 중복 저장되지 않는다.
 
 프론트 성공 리다이렉트 처리 참고:
 
@@ -816,6 +829,11 @@ Request:
 ```
 
 `orderId`는 PKM Box Store 내부 주문 ID이다. 해당 주문의 승인된 결제를 찾아 결제사 취소 API를 호출한다.
+
+멱등성 정책:
+
+- 이미 `CANCELED`인 주문에 취소 요청이 다시 들어오면 기존 취소 결제 응답을 반환한다.
+- 중복 취소 요청에서는 재고 복구와 `RELEASED` 재고 이력이 중복 처리되지 않는다.
 
 Response:
 
@@ -924,7 +942,67 @@ Response:
 - `401 Unauthorized`
 - `403 Forbidden`
 
-## 9. 관리자 주문 API
+## 9. 관리자 감사 로그 API
+
+### 관리자 감사 로그 조회
+
+- Method: `GET`
+- URL: `/api/admin/audit-logs`
+- 인증: 관리자 필요
+- 정렬/개수: 최신순 최근 100개 반환
+
+Request: 없음
+
+Response:
+
+```json
+[
+  {
+    "id": 1,
+    "adminId": 10,
+    "adminEmail": "admin@example.com",
+    "actionType": "PRODUCT_CREATED",
+    "targetType": "PRODUCT",
+    "targetId": 1,
+    "description": "상품 등록: 포켓몬 카드 박스",
+    "createdAt": "2026-05-22T09:00:00"
+  }
+]
+```
+
+응답 필드:
+
+- `id`: 감사 로그 ID
+- `adminId`: 작업한 관리자 회원 ID
+- `adminEmail`: 작업한 관리자 이메일
+- `actionType`: 작업 유형
+- `targetType`: 대상 유형
+- `targetId`: 대상 ID
+- `description`: 운영자가 이해할 수 있는 짧은 설명
+- `createdAt`: 로그 생성 시각
+
+`actionType` 값:
+
+- `PRODUCT_CREATED`
+- `PRODUCT_UPDATED`
+- `PRODUCT_HIDDEN`
+- `ORDER_PREPARED`
+- `ORDER_SHIPPED`
+- `ORDER_DELIVERED`
+- `PAYMENT_CANCELED`
+
+`targetType` 값:
+
+- `PRODUCT`
+- `ORDER`
+- `PAYMENT`
+
+주요 예외:
+
+- `401 Unauthorized`
+- `403 Forbidden`
+
+## 10. 관리자 주문 API
 
 ### 전체 주문 목록 조회
 
@@ -1045,7 +1123,7 @@ Response:
 - `401 Unauthorized`
 - `403 Forbidden`
 
-## 10. 관리자 결제 API
+## 11. 관리자 결제 API
 
 ### 관리자 결제 취소/환불
 
@@ -1063,6 +1141,12 @@ Request:
 ```
 
 `orderId`는 PKM Box Store 내부 주문 ID이다. 관리자는 주문 소유자와 무관하게 해당 주문의 승인된 결제를 찾아 결제사 취소 API를 호출한다.
+
+멱등성 정책:
+
+- 이미 `CANCELED`인 주문에 취소 요청이 다시 들어오면 기존 취소 결제 응답을 반환한다.
+- 중복 취소 요청에서는 재고 복구와 `RELEASED` 재고 이력이 중복 처리되지 않는다.
+- 최초 관리자 취소/환불 성공 시 `PAYMENT_CANCELED` 감사 로그가 저장된다.
 
 처리 결과:
 
