@@ -149,12 +149,20 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
   - 프론트에는 `NEXT_PUBLIC_TOSS_CLIENT_KEY`가 필요하다.
   - 두 키는 같은 Toss 테스트 상점의 Secret Key와 Client Key여야 한다.
 - S3 실제 테스트를 하지 않더라도 로컬 부팅을 위해 AWS 더미 환경변수가 필요할 수 있다.
+- Secret 관리 확인:
+  - `.env`, `.env.local`, `.env.*.local`은 Git에 커밋하지 않는다.
+  - `backend/.env.example`, `frontend/.env.example`에는 실제 키 값 대신 빈 값 또는 placeholder만 둔다.
+  - Toss Secret Key, Toss Client Key, AWS Access Key, DB 비밀번호, JWT Secret은 로컬/배포 환경변수로만 주입한다.
 - 관리자 테스트 계정은 DB에서 `ROLE_ADMIN`으로 변경 후 재로그인 필요
 - 상세 흐름은 `docs/local-test-checklist.md` 기준으로 확인
 
 ## 실제 운영 전 반드시 보강할 것
 
 - 운영 Toss 키 전환
+- Secret 관리 체계 점검
+  - 운영/스테이징 Secret은 배포 플랫폼 또는 Secret Manager로 관리
+  - Git index에 실제 `.env` 또는 `.env.local`이 추적되지 않는지 확인
+  - 키 노출 시 즉시 폐기/재발급 절차 준비
 - 실제 결제/취소 멱등성 강화
 - 주문 상태와 결제 상태/배송 상태 분리 검토
 - refresh token 또는 토큰 만료 UX

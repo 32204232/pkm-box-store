@@ -28,18 +28,20 @@ FLUSH PRIVILEGES;
 
 - [ ] `DB_URL=jdbc:mysql://localhost:3306/pkm_box_store?serverTimezone=Asia/Seoul&characterEncoding=UTF-8`
 - [ ] `DB_USERNAME=pkm_user`
-- [ ] `DB_PASSWORD=change-me`
+- [ ] `DB_PASSWORD`: 로컬 전용 비밀번호. 운영 비밀번호나 공유 비밀번호를 커밋하지 않는다.
 - [ ] `JWT_SECRET`: 32바이트 이상 긴 랜덤 문자열
-- [ ] `TOSS_PAYMENTS_SECRET_KEY=test_sk_...`
+- [ ] `TOSS_PAYMENTS_SECRET_KEY`: Toss 개발자센터에서 발급받은 테스트 상점 Secret Key
 - [ ] `AWS_S3_BUCKET`
 - [ ] `AWS_ACCESS_KEY_ID`
 - [ ] `AWS_SECRET_ACCESS_KEY`
 - [ ] `AWS_REGION=ap-northeast-2`
+- [ ] `CORS_ALLOWED_ORIGINS=http://localhost:3000`
 
 주의:
 
 - [ ] S3 실제 업로드를 테스트하지 않더라도 백엔드 부팅을 위해 AWS 더미 값이 필요할 수 있다.
 - [ ] 실제 S3 업로드를 테스트하려면 유효한 버킷, 리전, 접근 키, 권한 정책이 필요하다.
+- [ ] Toss 키, AWS 키, DB 비밀번호, JWT Secret은 `.env`, `.env.local`, 문서, 커밋에 남기지 않는다.
 
 ### Frontend 환경변수
 
@@ -47,15 +49,16 @@ FLUSH PRIVILEGES;
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
-NEXT_PUBLIC_TOSS_CLIENT_KEY=test_ck_...
+NEXT_PUBLIC_TOSS_CLIENT_KEY=
 ```
 
 ### Toss 테스트 키
 
-- [ ] 프론트엔드에는 `NEXT_PUBLIC_TOSS_CLIENT_KEY=test_ck_...`를 넣는다.
-- [ ] 백엔드에는 `TOSS_PAYMENTS_SECRET_KEY=test_sk_...`를 넣는다.
+- [ ] 프론트엔드에는 Toss 개발자센터에서 발급받은 테스트 상점 Client Key를 `NEXT_PUBLIC_TOSS_CLIENT_KEY`로 넣는다.
+- [ ] 백엔드에는 같은 테스트 상점의 Secret Key를 `TOSS_PAYMENTS_SECRET_KEY`로 넣는다.
 - [ ] 두 키가 같은 Toss 테스트 상점의 Client Key와 Secret Key인지 확인한다.
 - [ ] 프론트엔드와 백엔드를 환경변수 적용 후 재시작한다.
+- [ ] 테스트 키 값도 커밋하지 않는다.
 
 ## 2. 실행 방법
 
@@ -165,8 +168,8 @@ npm run dev
 
 ### Toss 테스트 결제 성공
 
-- [ ] `NEXT_PUBLIC_TOSS_CLIENT_KEY`가 `test_ck...` 형식인지 확인한다.
-- [ ] `TOSS_PAYMENTS_SECRET_KEY`가 `test_sk...` 형식인지 확인한다.
+- [ ] `NEXT_PUBLIC_TOSS_CLIENT_KEY`가 Toss 개발자센터에서 발급받은 테스트 Client Key인지 확인한다.
+- [ ] `TOSS_PAYMENTS_SECRET_KEY`가 같은 테스트 상점의 Secret Key인지 확인한다.
 - [ ] 두 키가 같은 Toss 테스트 상점의 키인지 확인한다.
 - [ ] Toss 결제창에서 테스트 결제를 성공시킨다.
 - [ ] `/payments/success`로 복귀하는지 확인한다.
@@ -390,7 +393,8 @@ ORDER BY id DESC;
 - 증상:
   - 결제하기 클릭 시 `Toss Payments 클라이언트 키가 설정되지 않았습니다.` 메시지가 표시된다.
 - 해결:
-  - `frontend/.env.local`에 `NEXT_PUBLIC_TOSS_CLIENT_KEY=test_ck_...`를 추가한다.
+  - `frontend/.env.local`에 `NEXT_PUBLIC_TOSS_CLIENT_KEY`를 설정한다.
+  - 키 값은 Toss 개발자센터에서 확인하고 커밋하지 않는다.
   - 프론트엔드 dev 서버를 재시작한다.
 
 ### Toss secret key 누락 또는 상점 불일치
@@ -399,7 +403,8 @@ ORDER BY id DESC;
   - Toss 결제창은 열리지만 `/payments/success`에서 결제 승인 API가 실패한다.
   - 백엔드 로그에 Toss 승인 실패 또는 인증 실패가 남는다.
 - 해결:
-  - 백엔드 실행 환경에 `TOSS_PAYMENTS_SECRET_KEY=test_sk_...`를 설정한다.
+  - 백엔드 실행 환경에 `TOSS_PAYMENTS_SECRET_KEY`를 설정한다.
+  - 키 값은 Toss 개발자센터에서 확인하고 커밋하지 않는다.
   - 프론트의 Client Key와 같은 Toss 테스트 상점의 Secret Key인지 확인한다.
   - 백엔드를 재시작한다.
 
