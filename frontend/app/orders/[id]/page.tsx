@@ -6,15 +6,15 @@ import { useEffect, useMemo, useState } from "react";
 import { Message } from "@/components/Message";
 import { RequireAuth } from "@/components/RequireAuth";
 import { StatusBadge } from "@/components/StatusBadge";
-import { api, formatPrice } from "@/lib/api";
+import { api, formatDateTime, formatPrice } from "@/lib/api";
 import type { Order } from "@/types/api";
 
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("ko-KR", {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(new Date(value));
-}
+type OrderDeliveryTracking = Order & {
+  courierCompany?: string | null;
+  trackingNumber?: string | null;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
+};
 
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
@@ -59,38 +59,75 @@ export default function OrderDetailPage() {
         ) : !order ? (
           <div className="alert">표시할 주문 정보가 없습니다.</div>
         ) : (
-          <div className="stack">
-            <div className="card">
-              <div className="card-body stack">
-                <div className="row">
-                  <span className="muted">주문번호</span>
-                  <strong>{order.orderUid}</strong>
-                </div>
-                <div className="row">
-                  <span className="muted">주문 상태</span>
+          <OrderDetailContent order={order} />
+        )}
+      </div>
+    </RequireAuth>
+  );
+}
+
+function OrderDetailContent({ order }: { order: Order }) {
+  const tracking = order as OrderDeliveryTracking;
+  const hasTrackingInfo =
+    Boolean(tracking.courierCompany) ||
+    Boolean(tracking.trackingNumber) ||
+    Boolean(tracking.shippedAt) ||
+    Boolean(tracking.deliveredAt);
+  const isDelivered = order.status === "DELIVERED";
+  const isShipped = order.status === "SHIPPED";
+
+  return (
+    <div className="order-detail-layout">
+      <section className="order-detail-main">
+        <div className="card order-status-card">
+          <div className="card-body stack">
+            <div className="order-status-header">
+              <div>
+                <span className="muted">주문 상태</span>
+                <div className="order-status-title">
                   <StatusBadge value={order.status} />
-                </div>
-                <div className="row">
-                  <span className="muted">총 금액</span>
-                  <strong>{formatPrice(order.totalPrice)}</strong>
-                </div>
-                <div className="row">
-                  <span className="muted">만료 시간</span>
-                  <strong>{formatDateTime(order.expiresAt)}</strong>
-                </div>
-                <div className="row">
-                  <span className="muted">생성 시간</span>
-                  <span>{formatDateTime(order.createdAt)}</span>
-                </div>
-                <div className="row">
-                  <span className="muted">수정 시간</span>
-                  <span>{formatDateTime(order.updatedAt)}</span>
+                  {isDelivered && <strong>배송이 완료되었습니다.</strong>}
+                  {isShipped && !isDelivered && <strong>상품이 배송 중입니다.</strong>}
                 </div>
               </div>
+              {order.status === "PAYMENT_PENDING" && (
+                <Link className="button primary order-payment-button" href={`/orders/${order.id}/payment`}>
+                  결제하러 가기
+                </Link>
+              )}
             </div>
 
-            <div className="table-wrap">
-              <table className="table">
+            <div className="order-summary-grid">
+              <div>
+                <span className="muted">주문번호</span>
+                <strong>{order.orderUid}</strong>
+              </div>
+              <div>
+                <span className="muted">생성 시간</span>
+                <strong>{formatDateTime(order.createdAt)}</strong>
+              </div>
+              <div>
+                <span className="muted">총 금액</span>
+                <strong className="order-summary-price">{formatPrice(order.totalPrice)}</strong>
+              </div>
+              <div>
+                <span className="muted">결제 만료 시간</span>
+                <strong>{formatDateTime(order.expiresAt)}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-body stack">
+            <div className="order-section-header">
+              <div>
+                <strong>주문 상품</strong>
+                <p>{order.items.length}개 상품의 주문 내역입니다.</p>
+              </div>
+            </div>
+            <div className="table-wrap order-items-wrap">
+              <table className="table order-items-table">
                 <thead>
                   <tr>
                     <th>상품명</th>
@@ -102,44 +139,89 @@ export default function OrderDetailPage() {
                 <tbody>
                   {order.items.map((item) => (
                     <tr key={item.id}>
-                      <td>{item.productNameSnapshot}</td>
+                      <td>
+                        <strong>{item.productNameSnapshot}</strong>
+                      </td>
                       <td>{formatPrice(item.orderPrice)}</td>
                       <td>{item.quantity}</td>
-                      <td>{formatPrice(item.lineTotal)}</td>
+                      <td>
+                        <strong>{formatPrice(item.lineTotal)}</strong>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      </section>
 
-            <div className="card">
-              <div className="card-body stack">
+      <aside className="order-detail-side">
+        <div className="card">
+          <div className="card-body stack">
+            <div className="order-section-header">
+              <div>
                 <strong>배송 정보</strong>
-                <div className="row">
-                  <span className="muted">수령인</span>
-                  <span>{order.receiverName}</span>
-                </div>
-                <div className="row">
-                  <span className="muted">연락처</span>
-                  <span>{order.receiverPhone}</span>
-                </div>
-                <div className="row">
-                  <span className="muted">주소</span>
-                  <span>{order.address}</span>
-                </div>
+                <p>주문 상품을 받을 주소입니다.</p>
               </div>
             </div>
-
-            {order.status === "PAYMENT_PENDING" && (
-              <div className="action-group">
-                <Link className="button primary" href={`/orders/${order.id}/payment`}>
-                  결제하러 가기
-                </Link>
+            <div className="order-info-list">
+              <div>
+                <span className="muted">수령인</span>
+                <strong>{order.receiverName}</strong>
               </div>
-            )}
+              <div>
+                <span className="muted">연락처</span>
+                <strong>{order.receiverPhone}</strong>
+              </div>
+              <div>
+                <span className="muted">주소</span>
+                <strong>{order.address}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {(hasTrackingInfo || isShipped || isDelivered) && (
+          <div className="card">
+            <div className="card-body stack">
+              <div className="order-section-header">
+                <div>
+                  <strong>운송장 정보</strong>
+                  <p>{isDelivered ? "배송 완료된 주문입니다." : "배송 진행 정보를 확인해 주세요."}</p>
+                </div>
+              </div>
+              <div className="order-tracking-card">
+                {tracking.courierCompany && (
+                  <div>
+                    <span className="muted">택배사</span>
+                    <strong>{tracking.courierCompany}</strong>
+                  </div>
+                )}
+                {tracking.trackingNumber && (
+                  <div>
+                    <span className="muted">운송장 번호</span>
+                    <strong>{tracking.trackingNumber}</strong>
+                  </div>
+                )}
+                {tracking.shippedAt && (
+                  <div>
+                    <span className="muted">발송 시간</span>
+                    <strong>{formatDateTime(tracking.shippedAt)}</strong>
+                  </div>
+                )}
+                {tracking.deliveredAt && (
+                  <div>
+                    <span className="muted">배송 완료 시간</span>
+                    <strong>{formatDateTime(tracking.deliveredAt)}</strong>
+                  </div>
+                )}
+                {!hasTrackingInfo && <strong>{isDelivered ? "배송 완료" : "배송 중"}</strong>}
+              </div>
+            </div>
           </div>
         )}
-      </div>
-    </RequireAuth>
+      </aside>
+    </div>
   );
 }

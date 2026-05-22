@@ -689,6 +689,116 @@ select {
   min-width: 180px;
 }
 
+.order-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: 24px;
+  align-items: start;
+}
+
+.order-detail-main,
+.order-detail-side {
+  display: grid;
+  gap: 16px;
+}
+
+.order-detail-side {
+  position: sticky;
+  top: 84px;
+}
+
+.order-status-card {
+  border-color: #c8d8ee;
+}
+
+.order-status-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.order-status-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.order-payment-button {
+  min-height: 46px;
+  min-width: 150px;
+  font-weight: 800;
+}
+
+.order-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.order-summary-grid > div {
+  display: grid;
+  gap: 6px;
+  min-height: 74px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-muted);
+}
+
+.order-summary-price {
+  color: var(--brand);
+  font-size: 20px;
+}
+
+.order-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.order-section-header p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.order-items-wrap {
+  overflow: hidden;
+}
+
+.order-items-table {
+  min-width: 640px;
+}
+
+.order-items-table td:first-child {
+  width: 42%;
+}
+
+.order-info-list,
+.order-tracking-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.order-info-list > div,
+.order-tracking-card > div {
+  display: grid;
+  gap: 4px;
+}
+
+.order-tracking-card {
+  border-color: #b8d7c5;
+  background: #f3fbf6;
+}
+
 .product-detail-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
@@ -905,6 +1015,34 @@ select {
 
   .payment-result-primary {
     min-width: 0;
+  }
+
+  .order-detail-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .order-detail-side {
+    position: static;
+  }
+
+  .order-status-header {
+    flex-direction: column;
+  }
+
+  .order-payment-button {
+    width: 100%;
+  }
+
+  .order-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .order-items-wrap {
+    overflow-x: auto;
+  }
+
+  .order-items-table {
+    min-width: 600px;
   }
 
   .product-detail-layout {
