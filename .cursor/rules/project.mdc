@@ -1,0 +1,38 @@
+# PKM Box Store Project Rules
+
+## Project Overview
+PKM Box Store is a Pokemon card box shopping mall project.
+
+## Stack
+- Backend: Spring Boot, MySQL, JWT, Toss Payments, AWS S3
+- Frontend: Next.js App Router, TypeScript, CSS in globals.css
+- Do not introduce Tailwind CSS or external UI libraries unless explicitly requested.
+
+## General Rules
+- Do not change backend code when the task is frontend-only.
+- Do not change frontend code when the task is backend-only.
+- Preserve existing API calls, routing, authentication, and state management unless the task explicitly asks to change them.
+- Do not add mock data to replace real API data.
+- Always check existing files before editing.
+- After frontend changes, run `npm run build` from `frontend`.
+- After backend changes, run `.\gradlew.bat test --no-daemon` from `backend`.
+
+## Frontend Rules
+- Use existing `frontend/lib/api.ts`.
+- Use existing `frontend/types/api.ts`.
+- Use existing `RequireAuth`.
+- Prefer editing `frontend/app/globals.css` for styling.
+- Keep mobile responsiveness.
+- Do not remove existing user flows:
+  - product list
+  - product detail
+  - cart
+  - direct purchase
+  - order/payment
+  - admin pages
+
+## Backend Rules
+- Follow existing domain package structure.
+- Use existing BusinessException and ErrorCode.
+- Keep existing security rules.
+- Do not commit real secrets.
