@@ -20,7 +20,6 @@ import com.pkm.store.domain.order.repository.OrderRepository;
 import com.pkm.store.domain.order.type.OrderStatus;
 import com.pkm.store.domain.product.entity.Product;
 import com.pkm.store.domain.product.repository.ProductRepository;
-import com.pkm.store.domain.product.type.ProductStatus;
 import com.pkm.store.global.exception.BusinessException;
 import com.pkm.store.global.exception.ErrorCode;
 import java.time.LocalDateTime;
@@ -56,7 +55,7 @@ public class OrderService {
         for (CartItem cartItem : cartItems) {
             Product product = productRepository.findByIdWithPessimisticWriteLock(cartItem.getProduct().getId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
-            validateOrderable(product);
+            product.validatePurchasable(cartItem.getQuantity());
             inventoryService.reserve(product, cartItem.getQuantity(), "ORDER_RESERVED");
             order.addOrderItem(OrderItem.create(product, cartItem.getQuantity()));
         }
@@ -145,12 +144,6 @@ public class OrderService {
 
         return memberRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
-    }
-
-    private void validateOrderable(Product product) {
-        if (product.getStatus() == ProductStatus.HIDDEN) {
-            throw new BusinessException(ErrorCode.ORDER_NOT_ALLOWED);
-        }
     }
 
     private Order createOrder(Member member, OrderCreateRequest request) {

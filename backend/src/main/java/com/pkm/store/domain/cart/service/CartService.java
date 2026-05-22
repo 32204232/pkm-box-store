@@ -10,7 +10,6 @@ import com.pkm.store.domain.member.entity.Member;
 import com.pkm.store.domain.member.repository.MemberRepository;
 import com.pkm.store.domain.product.entity.Product;
 import com.pkm.store.domain.product.repository.ProductRepository;
-import com.pkm.store.domain.product.type.ProductStatus;
 import com.pkm.store.global.exception.BusinessException;
 import com.pkm.store.global.exception.ErrorCode;
 import java.util.List;
@@ -45,14 +44,16 @@ public class CartService {
         Member member = getCurrentMember();
         Product product = productRepository.findById(request.productId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
-        validateProductAvailable(product);
-
         CartItem cartItem = cartItemRepository.findByMemberAndProduct(member, product)
                 .map(existingItem -> {
+                    product.validatePurchasable(existingItem.getQuantity() + request.quantity());
                     existingItem.addQuantity(request.quantity());
                     return existingItem;
                 })
-                .orElseGet(() -> cartItemRepository.save(CartItem.create(member, product, request.quantity())));
+                .orElseGet(() -> {
+                    product.validatePurchasable(request.quantity());
+                    return cartItemRepository.save(CartItem.create(member, product, request.quantity()));
+                });
 
         return CartItemResponse.from(cartItem);
     }
@@ -64,6 +65,7 @@ public class CartService {
         CartItem cartItem = cartItemRepository.findByIdAndMember(cartItemId, member)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND));
 
+        cartItem.getProduct().validatePurchasable(request.quantity());
         cartItem.changeQuantity(request.quantity());
         return CartItemResponse.from(cartItem);
     }
@@ -90,12 +92,6 @@ public class CartService {
 
         return memberRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
-    }
-
-    private void validateProductAvailable(Product product) {
-        if (product.getStatus() == ProductStatus.HIDDEN) {
-            throw new BusinessException(ErrorCode.PRODUCT_NOT_AVAILABLE);
-        }
     }
 
     private void validateQuantity(int quantity) {

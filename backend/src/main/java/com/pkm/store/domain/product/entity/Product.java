@@ -128,16 +128,12 @@ public class Product {
         if (series != null) {
             this.series = series;
         }
-        if (releaseDate != null) {
-            this.releaseDate = releaseDate;
-        }
+        this.releaseDate = releaseDate;
         if (stockQuantity != null) {
             validateStockQuantity(stockQuantity);
             this.stockQuantity = stockQuantity;
         }
-        if (imageUrl != null) {
-            this.imageUrl = imageUrl;
-        }
+        this.imageUrl = imageUrl;
         if (status != null) {
             this.status = status;
         }
@@ -145,6 +141,16 @@ public class Product {
 
     public void hide() {
         this.status = ProductStatus.HIDDEN;
+    }
+
+    public void validatePurchasable(int quantity) {
+        validateStockChangeQuantity(quantity);
+        if (status != ProductStatus.ON_SALE) {
+            throw new BusinessException(ErrorCode.PRODUCT_NOT_PURCHASABLE);
+        }
+        if (stockQuantity < quantity) {
+            throw new BusinessException(ErrorCode.OUT_OF_STOCK);
+        }
     }
 
     public void decreaseStock(int quantity) {

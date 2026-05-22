@@ -14,6 +14,7 @@ public enum ErrorCode {
     CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "장바구니 항목을 찾을 수 없습니다."),
     INVALID_CART_QUANTITY(HttpStatus.BAD_REQUEST, "장바구니 수량은 1 이상이어야 합니다."),
     PRODUCT_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "장바구니에 담을 수 없는 상품입니다."),
+    PRODUCT_NOT_PURCHASABLE(HttpStatus.BAD_REQUEST, "구매할 수 없는 상품입니다."),
     ADDRESS_NOT_FOUND(HttpStatus.NOT_FOUND, "배송지를 찾을 수 없습니다."),
     INVALID_ADDRESS_REQUEST(HttpStatus.BAD_REQUEST, "올바르지 않은 배송지 요청입니다."),
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "주문을 찾을 수 없습니다."),

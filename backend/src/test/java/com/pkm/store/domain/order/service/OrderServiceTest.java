@@ -249,7 +249,42 @@ class OrderServiceTest {
         givenLockedProduct(product);
 
         assertThatThrownBy(() -> orderService.createOrderFromCart(createRequest()))
-                .isInstanceOf(BusinessException.class);
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.PRODUCT_NOT_PURCHASABLE);
+        verify(inventoryHistoryRepository, never()).save(any(InventoryHistory.class));
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void createOrderFromCartThrowsBusinessExceptionWhenProductIsSoldOut() {
+        Product product = createProduct(ProductStatus.SOLD_OUT, 10);
+        CartItem cartItem = CartItem.create(member, product, 1);
+        givenCurrentMember();
+        given(cartItemRepository.findAllByMemberOrderByCreatedAtDesc(member)).willReturn(List.of(cartItem));
+        givenLockedProduct(product);
+
+        assertThatThrownBy(() -> orderService.createOrderFromCart(createRequest()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.PRODUCT_NOT_PURCHASABLE);
+        verify(inventoryHistoryRepository, never()).save(any(InventoryHistory.class));
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void createOrderFromCartThrowsBusinessExceptionWhenProductIsComingSoon() {
+        Product product = createProduct(ProductStatus.COMING_SOON, 10);
+        CartItem cartItem = CartItem.create(member, product, 1);
+        givenCurrentMember();
+        given(cartItemRepository.findAllByMemberOrderByCreatedAtDesc(member)).willReturn(List.of(cartItem));
+        givenLockedProduct(product);
+
+        assertThatThrownBy(() -> orderService.createOrderFromCart(createRequest()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.PRODUCT_NOT_PURCHASABLE);
+        verify(inventoryHistoryRepository, never()).save(any(InventoryHistory.class));
         verify(orderRepository, never()).save(any(Order.class));
     }
 

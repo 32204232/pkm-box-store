@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.pkm.store.domain.cart.dto.CartItemAddRequest;
@@ -17,6 +18,7 @@ import com.pkm.store.domain.product.entity.Product;
 import com.pkm.store.domain.product.repository.ProductRepository;
 import com.pkm.store.domain.product.type.ProductStatus;
 import com.pkm.store.global.exception.BusinessException;
+import com.pkm.store.global.exception.ErrorCode;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -97,13 +99,98 @@ class CartServiceTest {
         given(productRepository.findById(1L)).willReturn(Optional.of(product));
 
         assertThatThrownBy(() -> cartService.addItem(new CartItemAddRequest(1L, 1)))
-                .isInstanceOf(BusinessException.class);
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.PRODUCT_NOT_PURCHASABLE);
+        verify(cartItemRepository, never()).save(any(CartItem.class));
+    }
+
+    @Test
+    void addItemThrowsBusinessExceptionWhenProductIsSoldOut() {
+        Product product = createProduct(ProductStatus.SOLD_OUT);
+        given(memberRepository.findByEmail(MEMBER_EMAIL)).willReturn(Optional.of(member));
+        given(productRepository.findById(1L)).willReturn(Optional.of(product));
+
+        assertThatThrownBy(() -> cartService.addItem(new CartItemAddRequest(1L, 1)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.PRODUCT_NOT_PURCHASABLE);
+        verify(cartItemRepository, never()).save(any(CartItem.class));
+    }
+
+    @Test
+    void addItemThrowsBusinessExceptionWhenProductIsComingSoon() {
+        Product product = createProduct(ProductStatus.COMING_SOON);
+        given(memberRepository.findByEmail(MEMBER_EMAIL)).willReturn(Optional.of(member));
+        given(productRepository.findById(1L)).willReturn(Optional.of(product));
+
+        assertThatThrownBy(() -> cartService.addItem(new CartItemAddRequest(1L, 1)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.PRODUCT_NOT_PURCHASABLE);
+        verify(cartItemRepository, never()).save(any(CartItem.class));
+    }
+
+    @Test
+    void addItemThrowsBusinessExceptionWhenStockIsNotEnough() {
+        Product product = createProduct(ProductStatus.ON_SALE, 1);
+        given(memberRepository.findByEmail(MEMBER_EMAIL)).willReturn(Optional.of(member));
+        given(productRepository.findById(1L)).willReturn(Optional.of(product));
+
+        assertThatThrownBy(() -> cartService.addItem(new CartItemAddRequest(1L, 2)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.OUT_OF_STOCK);
+        verify(cartItemRepository, never()).save(any(CartItem.class));
+    }
+
+    @Test
+    void addItemThrowsBusinessExceptionWhenExistingCartQuantityWouldExceedStock() {
+        Product product = createProduct(ProductStatus.ON_SALE, 4);
+        CartItem cartItem = CartItem.create(member, product, 2);
+        given(memberRepository.findByEmail(MEMBER_EMAIL)).willReturn(Optional.of(member));
+        given(productRepository.findById(1L)).willReturn(Optional.of(product));
+        given(cartItemRepository.findByMemberAndProduct(member, product)).willReturn(Optional.of(cartItem));
+
+        assertThatThrownBy(() -> cartService.addItem(new CartItemAddRequest(1L, 3)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.OUT_OF_STOCK);
+        assertThat(cartItem.getQuantity()).isEqualTo(2);
     }
 
     @Test
     void updateItemThrowsBusinessExceptionWhenQuantityIsZeroOrLess() {
         assertThatThrownBy(() -> cartService.updateItem(1L, new CartItemUpdateRequest(0)))
                 .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void updateItemThrowsBusinessExceptionWhenProductIsNotPurchasable() {
+        Product product = createProduct(ProductStatus.SOLD_OUT, 20);
+        CartItem cartItem = CartItem.create(member, product, 2);
+        given(memberRepository.findByEmail(MEMBER_EMAIL)).willReturn(Optional.of(member));
+        given(cartItemRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(cartItem));
+
+        assertThatThrownBy(() -> cartService.updateItem(1L, new CartItemUpdateRequest(3)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.PRODUCT_NOT_PURCHASABLE);
+        assertThat(cartItem.getQuantity()).isEqualTo(2);
+    }
+
+    @Test
+    void updateItemThrowsBusinessExceptionWhenStockIsNotEnough() {
+        Product product = createProduct(ProductStatus.ON_SALE, 2);
+        CartItem cartItem = CartItem.create(member, product, 1);
+        given(memberRepository.findByEmail(MEMBER_EMAIL)).willReturn(Optional.of(member));
+        given(cartItemRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(cartItem));
+
+        assertThatThrownBy(() -> cartService.updateItem(1L, new CartItemUpdateRequest(3)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.OUT_OF_STOCK);
+        assertThat(cartItem.getQuantity()).isEqualTo(1);
     }
 
     @Test
@@ -119,6 +206,10 @@ class CartServiceTest {
     }
 
     private Product createProduct(ProductStatus status) {
+        return createProduct(status, 20);
+    }
+
+    private Product createProduct(ProductStatus status, int stockQuantity) {
         return Product.create(
                 "포켓몬 카드 박스",
                 "한국어판 포켓몬 카드 박스",
@@ -126,7 +217,7 @@ class CartServiceTest {
                 "부스터 박스",
                 "스칼렛&바이올렛",
                 LocalDate.of(2026, 1, 1),
-                20,
+                stockQuantity,
                 "https://example.com/product.jpg",
                 status
         );
