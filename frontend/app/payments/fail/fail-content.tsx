@@ -8,6 +8,7 @@ import { RequireAuth } from "@/components/RequireAuth";
 import { api } from "@/lib/api";
 
 const failRequests = new Map<string, Promise<string>>();
+const TOSS_ORDER_ID_PATTERN = /^[A-Za-z0-9_-]{6,64}$/;
 
 export function PaymentFailContent() {
   const searchParams = useSearchParams();
@@ -21,18 +22,26 @@ export function PaymentFailContent() {
     }
     requestedRef.current = true;
 
-    const orderIdParam = searchParams.get("orderId");
-    const orderId = Number(orderIdParam);
+    const internalOrderIdParam = searchParams.get("internalOrderId");
+    const providerOrderId = searchParams.get("orderId");
+    const internalOrderId = Number(internalOrderIdParam);
     const tossMessage = searchParams.get("message");
+    const hasValidProviderOrderId = providerOrderId ? TOSS_ORDER_ID_PATTERN.test(providerOrderId) : true;
 
-    const requestKey = Number.isInteger(orderId) && orderId > 0 ? String(orderId) : `no-order:${tossMessage ?? ""}`;
+    const requestKey =
+      Number.isInteger(internalOrderId) && internalOrderId > 0
+        ? `${internalOrderId}:${providerOrderId ?? ""}`
+        : `no-order:${providerOrderId ?? ""}:${tossMessage ?? ""}`;
     const failRequest =
       failRequests.get(requestKey) ??
       (async () => {
-        if (Number.isInteger(orderId) && orderId > 0) {
-          await api.failPayment(orderId);
+        if (!hasValidProviderOrderId) {
+          return "Toss Payments 주문번호 형식이 올바르지 않습니다.";
         }
-        return tossMessage ? decodeURIComponent(tossMessage) : "결제가 실패했거나 취소되었습니다.";
+        if (Number.isInteger(internalOrderId) && internalOrderId > 0) {
+          await api.failPayment(internalOrderId);
+        }
+        return tossMessage || "결제가 실패했거나 취소되었습니다.";
       })();
 
     failRequests.set(requestKey, failRequest);

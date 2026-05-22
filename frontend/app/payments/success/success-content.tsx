@@ -9,11 +9,13 @@ import { api, formatPrice } from "@/lib/api";
 import type { PaymentResponse } from "@/types/api";
 
 const confirmRequests = new Map<string, Promise<PaymentResponse>>();
+const TOSS_ORDER_ID_PATTERN = /^[A-Za-z0-9_-]{6,64}$/;
 
 export function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const [message, setMessage] = useState<string | null>(null);
   const [payment, setPayment] = useState<PaymentResponse | null>(null);
+  const [providerOrderId, setProviderOrderId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(true);
   const requestedRef = useRef(false);
 
@@ -24,29 +26,43 @@ export function PaymentSuccessContent() {
     requestedRef.current = true;
 
     const paymentKey = searchParams.get("paymentKey");
-    const orderIdParam = searchParams.get("orderId");
+    const providerOrderIdParam = searchParams.get("orderId");
+    const internalOrderIdParam = searchParams.get("internalOrderId");
     const amountParam = searchParams.get("amount");
-    const orderId = Number(orderIdParam);
+    const internalOrderId = Number(internalOrderIdParam);
     const amount = Number(amountParam);
 
-    if (!paymentKey || !Number.isInteger(orderId) || orderId <= 0 || !Number.isFinite(amount) || amount <= 0) {
+    if (
+      !paymentKey ||
+      !providerOrderIdParam ||
+      !TOSS_ORDER_ID_PATTERN.test(providerOrderIdParam) ||
+      !Number.isInteger(internalOrderId) ||
+      internalOrderId <= 0 ||
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
       setMessage("결제 승인에 필요한 정보가 올바르지 않습니다.");
       setConfirming(false);
       return;
     }
 
     const confirmedPaymentKey = paymentKey;
+    const confirmedProviderOrderId = providerOrderIdParam;
+    setProviderOrderId(confirmedProviderOrderId);
 
-    const requestKey = `${orderId}:${confirmedPaymentKey}:${amount}`;
+    const requestKey = `${internalOrderId}:${confirmedProviderOrderId}:${confirmedPaymentKey}:${amount}`;
     const confirmRequest =
       confirmRequests.get(requestKey) ??
       (async () => {
-        const order = await api.order(orderId);
+        const order = await api.order(internalOrderId);
+        if (order.orderUid !== confirmedProviderOrderId) {
+          throw new Error("주문번호가 일치하지 않습니다.");
+        }
         return api.confirmPayment({
-          orderId,
+          orderId: internalOrderId,
           provider: "TOSS",
           paymentKey: confirmedPaymentKey,
-          providerOrderId: order.orderUid,
+          providerOrderId: confirmedProviderOrderId,
           amount
         });
       })();
@@ -91,7 +107,7 @@ export function PaymentSuccessContent() {
               <div className="payment-result-details">
                 <div className="row">
                   <span className="muted">주문번호</span>
-                  <strong>{payment.orderId}</strong>
+                  <strong>{providerOrderId ?? payment.orderId}</strong>
                 </div>
                 <div className="row">
                   <span className="muted">결제 상태</span>

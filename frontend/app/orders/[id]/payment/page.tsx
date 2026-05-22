@@ -10,6 +10,7 @@ import { api, formatPrice } from "@/lib/api";
 import type { Order } from "@/types/api";
 
 const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
+const TOSS_ORDER_ID_PATTERN = /^[A-Za-z0-9_-]{6,64}$/;
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -62,12 +63,21 @@ export default function OrderPaymentPage() {
       return;
     }
 
+    if (!TOSS_ORDER_ID_PATTERN.test(order.orderUid)) {
+      setMessage("Toss Payments 주문번호 형식이 올바르지 않습니다.");
+      return;
+    }
+
     setPaying(true);
     setMessage("Toss Payments 결제창을 여는 중입니다.");
 
     try {
       const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
       const payment = tossPayments.payment({ customerKey: ANONYMOUS });
+      const successUrl = new URL("/payments/success", window.location.origin);
+      successUrl.searchParams.set("internalOrderId", String(order.id));
+      const failUrl = new URL("/payments/fail", window.location.origin);
+      failUrl.searchParams.set("internalOrderId", String(order.id));
 
       await payment.requestPayment({
         method: "CARD",
@@ -75,11 +85,11 @@ export default function OrderPaymentPage() {
           currency: "KRW",
           value: order.totalPrice
         },
-        orderId: String(order.id),
+        orderId: order.orderUid,
         orderName: getOrderName(order),
         customerName: order.receiverName,
-        successUrl: `${window.location.origin}/payments/success?orderId=${order.id}`,
-        failUrl: `${window.location.origin}/payments/fail?orderId=${order.id}`,
+        successUrl: successUrl.toString(),
+        failUrl: failUrl.toString(),
         card: {
           flowMode: "DEFAULT",
           useEscrow: false,
