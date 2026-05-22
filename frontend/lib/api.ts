@@ -151,6 +151,10 @@ export const api = {
     return request<Product>(`/api/products/${id}`, { auth: false });
   },
 
+  adminProducts() {
+    return request<Product[]>("/api/admin/products");
+  },
+
   createProduct(body: ProductCreateRequest) {
     return request<Product>("/api/admin/products", { method: "POST", body });
   },

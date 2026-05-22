@@ -31,6 +31,8 @@ Request:
 }
 ```
 
+`releaseDate`와 `imageUrl`은 `null`을 보내면 기존 값을 제거한다. 그 외 필드는 값이 있는 경우 해당 값으로 수정한다.
+
 Response:
 
 ```json
@@ -158,6 +160,42 @@ Response:
 주요 예외:
 
 - `PRODUCT_NOT_FOUND`
+
+### 관리자 상품 목록 조회
+
+- Method: `GET`
+- URL: `/api/admin/products`
+- 인증: 관리자 필요
+
+Request: 없음
+
+`HIDDEN` 상품을 포함해 모든 상품을 최신순으로 조회한다. 관리자 상품 관리 화면에서 숨김 상품을 다시 확인하고 수정할 때 사용한다.
+
+Response:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "포켓몬 카드 박스",
+    "description": "한국어판 포켓몬 카드 박스",
+    "price": 30000,
+    "category": "부스터 박스",
+    "series": "스칼렛&바이올렛",
+    "releaseDate": "2026-01-01",
+    "stockQuantity": 20,
+    "imageUrl": "https://example.com/product.jpg",
+    "status": "HIDDEN",
+    "createdAt": "2026-05-21T09:00:00",
+    "updatedAt": "2026-05-21T09:00:00"
+  }
+]
+```
+
+주요 예외:
+
+- `401 Unauthorized`
+- `403 Forbidden`
 
 ### 관리자 상품 등록
 

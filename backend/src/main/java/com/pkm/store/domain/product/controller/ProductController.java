@@ -47,14 +47,17 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProduct(id));
     }
 
-    // TODO: 추후 ROLE_ADMIN 권한 검증을 적용한다.
+    @GetMapping("/admin/products")
+    public ResponseEntity<List<ProductResponse>> getAdminProducts() {
+        return ResponseEntity.ok(productService.getAdminProducts());
+    }
+
     @PostMapping("/admin/products")
     public ResponseEntity<ProductResponse> createProduct(@Valid @RequestBody ProductCreateRequest request) {
         ProductResponse response = productService.createProduct(request);
         return ResponseEntity.created(URI.create("/api/products/" + response.id())).body(response);
     }
 
-    // TODO: 추후 ROLE_ADMIN 권한 검증을 적용한다.
     @PatchMapping("/admin/products/{id}")
     public ResponseEntity<ProductResponse> updateProduct(
             @PathVariable Long id,
@@ -63,7 +66,6 @@ public class ProductController {
         return ResponseEntity.ok(productService.updateProduct(id, request));
     }
 
-    // TODO: 추후 ROLE_ADMIN 권한 검증을 적용한다.
     @DeleteMapping("/admin/products/{id}")
     public ResponseEntity<Void> hideProduct(@PathVariable Long id) {
         productService.hideProduct(id);

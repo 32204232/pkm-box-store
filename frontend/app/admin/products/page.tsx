@@ -38,7 +38,7 @@ export default function AdminProductsPage() {
 
   async function loadProducts() {
     try {
-      setProducts(await api.products());
+      setProducts(await api.adminProducts());
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "상품 조회에 실패했습니다.");
     } finally {
@@ -277,7 +277,7 @@ export default function AdminProductsPage() {
             <div className="admin-products-list-header">
               <div>
                 <h2>상품 목록</h2>
-                <p>상품을 선택해 수정하거나 숨김 처리할 수 있습니다.</p>
+                <p>숨김 상품을 포함해 상품을 선택, 수정, 숨김 처리할 수 있습니다.</p>
               </div>
               <strong>{products.length}개</strong>
             </div>

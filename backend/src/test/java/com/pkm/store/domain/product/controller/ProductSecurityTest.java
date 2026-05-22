@@ -56,6 +56,33 @@ class ProductSecurityTest {
     }
 
     @Test
+    void getAdminProductsReturnsUnauthorizedOrForbiddenWithoutAuthentication() throws Exception {
+        mockMvc.perform(get("/api/admin/products"))
+                .andExpect(result -> {
+                    int status = result.getResponse().getStatus();
+                    if (status != 401 && status != 403) {
+                        throw new AssertionError("Expected 401 or 403 but was " + status);
+                    }
+                });
+    }
+
+    @Test
+    void getAdminProductsReturnsForbiddenWithMemberRole() throws Exception {
+        mockMvc.perform(get("/api/admin/products")
+                        .with(user("member@example.com").roles("MEMBER")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void getAdminProductsIsAllowedWithAdminRole() throws Exception {
+        given(productService.getAdminProducts()).willReturn(List.of(createResponse()));
+
+        mockMvc.perform(get("/api/admin/products")
+                        .with(user("admin@example.com").roles("ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void createProductReturnsUnauthorizedOrForbiddenWithoutAuthentication() throws Exception {
         mockMvc.perform(post("/api/admin/products")
                         .contentType(MediaType.APPLICATION_JSON)

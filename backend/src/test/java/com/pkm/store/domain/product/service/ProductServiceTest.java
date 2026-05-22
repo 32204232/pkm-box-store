@@ -104,6 +104,31 @@ class ProductServiceTest {
     }
 
     @Test
+    void updateProductClearsReleaseDateAndImageUrlWhenNullIsRequested() {
+        Product product = createProduct("기존 상품", ProductStatus.ON_SALE);
+        ReflectionTestUtils.setField(product, "id", 1L);
+        given(productRepository.findById(1L)).willReturn(Optional.of(product));
+
+        ProductResponse response = productService.updateProduct(
+                1L,
+                new ProductUpdateRequest(
+                        "기존 상품",
+                        "수정 설명",
+                        BigDecimal.valueOf(30000),
+                        "부스터 박스",
+                        "스칼렛&바이올렛",
+                        null,
+                        20,
+                        null,
+                        ProductStatus.ON_SALE
+                )
+        );
+
+        assertThat(response.releaseDate()).isNull();
+        assertThat(response.imageUrl()).isNull();
+    }
+
+    @Test
     void hideProductSavesAdminAuditLog() {
         Product product = createProduct("숨김 상품", ProductStatus.ON_SALE);
         ReflectionTestUtils.setField(product, "id", 1L);
@@ -134,6 +159,21 @@ class ProductServiceTest {
         assertThat(responses.get(0).name()).isEqualTo("판매 상품");
         assertThat(responses.get(0).status()).isNotEqualTo(ProductStatus.HIDDEN);
         verify(productRepository).searchProducts(null, null, null, null, false, ProductStatus.HIDDEN, sort);
+    }
+
+    @Test
+    void getAdminProductsIncludesHiddenProducts() {
+        Product visibleProduct = createProduct("판매 상품", ProductStatus.ON_SALE);
+        Product hiddenProduct = createProduct("숨김 상품", ProductStatus.HIDDEN);
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        given(productRepository.findAll(sort)).willReturn(List.of(hiddenProduct, visibleProduct));
+
+        List<ProductResponse> responses = productService.getAdminProducts();
+
+        assertThat(responses).hasSize(2);
+        assertThat(responses).extracting(ProductResponse::status)
+                .containsExactly(ProductStatus.HIDDEN, ProductStatus.ON_SALE);
+        verify(productRepository).findAll(sort);
     }
 
     @Test

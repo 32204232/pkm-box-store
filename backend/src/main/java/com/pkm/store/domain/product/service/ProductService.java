@@ -45,6 +45,13 @@ public class ProductService {
                 .toList();
     }
 
+    public List<ProductResponse> getAdminProducts() {
+        return productRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"))
+                .stream()
+                .map(ProductResponse::from)
+                .toList();
+    }
+
     public ProductResponse getProduct(Long id) {
         Product product = productRepository.findByIdAndStatusNot(id, ProductStatus.HIDDEN)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
