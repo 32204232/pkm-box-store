@@ -25,10 +25,16 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 - 배송지 선택 주문 생성
 - 일반 사용자 주문 목록/상세 조회
 - 주문 생성 후 결제 대기 페이지 이동
-- Toss Payments 결제창 프론트 연동
-- Toss 결제 성공 리다이렉트 및 결제 승인 API 호출
-- Toss 결제 실패/취소 리다이렉트 및 결제 실패 처리
-- 결제 대기 페이지의 결제 취소 처리
+- Toss 테스트 키 기반 결제 E2E 검증 완료
+  - Toss 결제창 정상 호출
+  - 결제 성공 후 `/payments/success` 복귀
+  - 결제 승인 API 호출
+  - 주문 상태 `PAID` 변경
+  - 관리자 주문 페이지에서 결제 완료 주문 확인 가능
+- 결제 실패/취소 흐름
+  - 결제 대기 페이지 취소
+  - Toss 실패/취소 리다이렉트 후 실패 처리
+  - 실패/취소 시 예약 재고 복구
 - 결제 취소/환불 API
   - 사용자: `POST /api/payments/cancel`
   - 관리자: `POST /api/admin/payments/cancel`
@@ -43,6 +49,10 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 - 관리자 대시보드 프론트
   - `/admin`
   - 오늘 주문 수, 오늘 매출, 상태별 주문 수, 최근 주문, 재고 부족 상품
+- 관리자 UX 1차 정리
+  - 관리자 대시보드, 상품 관리, 주문 상세 화면 정보 구조 개선
+- 사용자 구매 흐름 UX 1차 정리
+  - 상품 상세, 장바구니/주문 생성, 결제 대기, 결제 성공/실패, 주문 상세 화면 개선
 - 주문 만료 스케줄러
 - 재고 예약, 확정, 해제 이력 기록
 - 재고 동시성 락
@@ -109,12 +119,12 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 3. 백엔드는 주문을 `PAYMENT_PENDING`으로 만들고 재고를 예약 차감한다.
 4. 프론트는 `/orders/{orderId}/payment`로 이동한다.
 5. 결제하기 클릭 시 Toss 결제창을 연다.
-6. 결제 성공 후 `/payments/success`에서 `paymentKey`, `orderId`, `amount`를 읽는다.
-7. success 페이지는 `api.order(orderId)`로 `orderUid`를 조회해 `providerOrderId`로 사용한다.
+6. Toss 결제창 `orderId`에는 내부 DB ID가 아니라 주문 `orderUid`를 전달한다.
+7. 결제 성공 후 `/payments/success`로 돌아오며, 프론트는 `paymentKey`, Toss `orderId`, `amount`, `internalOrderId`를 구분해 처리한다.
 8. `api.confirmPayment` 성공 시 주문은 `PAID`, 결제는 `APPROVED`, 재고 이력은 `CONFIRMED`가 된다.
-9. 결제창 실패/취소 리다이렉트 또는 결제 대기 페이지 취소 시 `api.failPayment(orderId)`를 호출한다.
-10. 실패 처리 후 주문은 `FAILED`, 재고는 복구되고 이력은 `RELEASED`가 된다.
-11. 사용자 또는 관리자가 PAID 주문을 결제 취소/환불하면 Toss 취소 API를 호출한다.
+9. 결제 실패/취소 리다이렉트 또는 결제 대기 페이지 취소 시 실패 처리를 호출한다.
+10. 실패/취소 처리 후 주문은 `FAILED`, 재고는 복구되고 이력은 `RELEASED`가 된다.
+11. 사용자 또는 관리자가 `PAID` 주문을 결제 취소/환불하면 Toss 취소 API를 호출한다.
 12. 환불 성공 후 주문은 `CANCELED`, 결제는 `CANCELED`, 재고는 복구되고 이력은 `RELEASED`가 된다.
 13. 관리자는 `PAID -> PREPARING -> SHIPPED -> DELIVERED` 순서로 배송 상태를 변경한다.
 14. `SHIPPED` 처리 시 택배사와 운송장 번호가 저장되고 `shippedAt`이 채워진다.
@@ -130,36 +140,38 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
   - `DB_PASSWORD`
   - `JWT_SECRET`
   - `TOSS_PAYMENTS_SECRET_KEY`
-  - S3 업로드 테스트용 AWS/S3 변수
+  - S3 관련 AWS 환경변수
 - 프론트엔드 `frontend/.env.local` 확인:
   - `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080`
-  - `NEXT_PUBLIC_TOSS_CLIENT_KEY=test_ck_...`
+  - `NEXT_PUBLIC_TOSS_CLIENT_KEY`
 - Toss 테스트 키 확인:
-  - 더미 값만 있으면 완전한 결제 E2E는 불가능하다.
-  - Toss 결제창 승인부터 백엔드 승인/취소까지 검증하려면 같은 Toss 테스트 상점의 유효한 Client Key와 Secret Key가 필요하다.
+  - 백엔드에는 `TOSS_PAYMENTS_SECRET_KEY`가 필요하다.
+  - 프론트에는 `NEXT_PUBLIC_TOSS_CLIENT_KEY`가 필요하다.
+  - 두 키는 같은 Toss 테스트 상점의 Secret Key와 Client Key여야 한다.
+- S3 실제 테스트를 하지 않더라도 로컬 부팅을 위해 AWS 더미 환경변수가 필요할 수 있다.
 - 관리자 테스트 계정은 DB에서 `ROLE_ADMIN`으로 변경 후 재로그인 필요
 - 상세 흐름은 `docs/local-test-checklist.md` 기준으로 확인
 
 ## 실제 운영 전 반드시 보강할 것
 
-- Toss 테스트 키 기반 실제 결제 E2E
 - 운영 Toss 키 전환
-- 결제 승인/취소 멱등성 강화
+- 실제 결제/취소 멱등성 강화
+- 주문 상태와 결제 상태/배송 상태 분리 검토
 - refresh token 또는 토큰 만료 UX
 - 운영 CORS 도메인 분리
 - S3 실제 권한 정책
 - 배포 환경변수 관리
 - 로그/모니터링
+- 관리자 작업 감사 로그
 - 비밀번호 변경/재설정
 - 운영 DB 마이그레이션 전략
 - 주문/결제 실패 재처리 정책
-- 관리자 작업 감사 로그
 - 민감 정보와 API 응답 과노출 방지 점검
 
 ## 다음 추천 작업 순서
 
-1. `docs/local-test-checklist.md` 기준으로 로컬 전체 흐름을 검증한다.
-2. 유효한 Toss 테스트 키로 결제 승인/실패/취소/환불 E2E를 고정한다.
-3. 결제 승인/취소 멱등성과 중복 요청 방어를 강화한다.
+1. `docs/local-test-checklist.md` 기준으로 로컬 전체 흐름을 반복 검증한다.
+2. 결제 승인/취소 멱등성과 중복 요청 방어를 강화한다.
+3. 주문 상태와 결제 상태/배송 상태 분리 여부를 설계한다.
 4. 토큰 만료 UX와 refresh token 도입 여부를 결정한다.
 5. 운영 배포 전 CORS, S3 권한, 환경변수, 로그/모니터링을 정리한다.

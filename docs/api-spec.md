@@ -718,6 +718,32 @@ Request:
 }
 ```
 
+필드 의미:
+
+- `orderId`: PKM Box Store 내부 주문 ID이다. 주문 조회, 권한 확인, 주문 상태 변경에 사용한다.
+- `paymentKey`: Toss가 성공 리다이렉트로 내려준 결제 키이다.
+- `providerOrderId`: Toss가 성공 리다이렉트 query의 `orderId`로 내려준 값이다. PKM Box Store 주문의 `orderUid`와 같아야 한다.
+- `amount`: Toss가 성공 리다이렉트로 내려준 결제 금액이다.
+
+Toss 결제창 호출 시 주의:
+
+- Toss `requestPayment.orderId`에는 내부 숫자 ID인 `order.id`를 넣지 않는다.
+- Toss `requestPayment.orderId`에는 주문 응답의 `orderUid`를 넣는다.
+- Toss `orderId`는 영문 대소문자, 숫자, `-`, `_`만 허용하며 6자 이상 64자 이하여야 한다.
+
+결제 승인 처리 시 검증:
+
+- `paymentKey`가 비어 있지 않아야 한다.
+- `providerOrderId`가 내부 주문의 `orderUid`와 일치해야 한다.
+- `amount`가 내부 주문의 `totalPrice`와 일치해야 한다.
+- 이미 승인된 결제는 중복 승인하지 않아야 한다.
+
+프론트 성공 리다이렉트 처리 참고:
+
+- Toss success redirect query의 `orderId`는 내부 주문 ID가 아니라 `providerOrderId`로 취급한다.
+- 내부 주문 조회에는 별도 query parameter인 `internalOrderId`를 사용한다.
+- `internalOrderId`로 조회한 주문의 `orderUid`와 Toss가 돌려준 `providerOrderId`가 일치해야 결제 승인 API를 호출한다.
+
 Response:
 
 ```json
@@ -757,6 +783,14 @@ Request:
 }
 ```
 
+`orderId`는 PKM Box Store 내부 주문 ID이다.
+
+프론트 실패/취소 리다이렉트 처리 참고:
+
+- Toss fail redirect query의 `orderId`는 내부 주문 ID가 아니라 `providerOrderId`로 취급한다.
+- 내부 주문 실패 처리는 별도 query parameter인 `internalOrderId` 기준으로 호출한다.
+- Toss `orderId`는 실패 사유 표시나 검증용 provider 주문번호로만 취급하고, 내부 주문 조회에는 사용하지 않는다.
+
 Response: `204 No Content`
 
 주요 예외:
@@ -780,6 +814,8 @@ Request:
   "cancelReason": "고객 요청"
 }
 ```
+
+`orderId`는 PKM Box Store 내부 주문 ID이다. 해당 주문의 승인된 결제를 찾아 결제사 취소 API를 호출한다.
 
 Response:
 
@@ -1025,6 +1061,15 @@ Request:
   "cancelReason": "관리자 환불 처리"
 }
 ```
+
+`orderId`는 PKM Box Store 내부 주문 ID이다. 관리자는 주문 소유자와 무관하게 해당 주문의 승인된 결제를 찾아 결제사 취소 API를 호출한다.
+
+처리 결과:
+
+- 주문 상태는 `CANCELED`가 된다.
+- 결제 상태는 `CANCELED`가 된다.
+- 주문으로 차감되었던 재고는 복구된다.
+- 재고 이력에는 `RELEASED` 기록이 남는다.
 
 Response:
 
