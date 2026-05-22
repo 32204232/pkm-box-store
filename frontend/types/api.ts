@@ -1,4 +1,5 @@
 export type ProductStatus = "ON_SALE" | "SOLD_OUT" | "COMING_SOON" | "HIDDEN";
+export type ProductSort = "latest" | "priceAsc" | "priceDesc" | "releaseDateDesc";
 export type MemberRole = "ROLE_MEMBER" | "ROLE_ADMIN";
 export type OrderStatus =
   | "PAYMENT_PENDING"
@@ -60,6 +61,15 @@ export interface ProductCreateRequest {
 }
 
 export type ProductUpdateRequest = Partial<ProductCreateRequest>;
+
+export interface ProductSearchParams {
+  keyword?: string;
+  category?: string;
+  series?: string;
+  status?: Exclude<ProductStatus, "HIDDEN">;
+  inStockOnly?: boolean;
+  sort?: ProductSort;
+}
 
 export interface CartItem {
   id: number;
@@ -129,6 +139,10 @@ export interface AdminOrder extends Order {
   memberId: number;
   memberEmail: string;
   memberName: string;
+  courierCompany: string | null;
+  trackingNumber: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
 }
 
 export interface PaymentConfirmRequest {

@@ -224,6 +224,52 @@ select {
   font-size: 14px;
 }
 
+.filter-panel {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.filter-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.filter-search label,
+.filter-grid label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.check-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .input,
 .textarea,
 .select {
@@ -298,6 +344,11 @@ select {
   .section-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .filter-search,
+  .filter-grid {
+    grid-template-columns: 1fr;
   }
 
   .split {

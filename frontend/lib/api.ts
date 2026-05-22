@@ -13,6 +13,7 @@ import type {
   PaymentResponse,
   Product,
   ProductCreateRequest,
+  ProductSearchParams,
   ProductUpdateRequest
 } from "@/types/api";
 
@@ -95,8 +96,30 @@ export const api = {
     return response;
   },
 
-  products() {
-    return request<Product[]>("/api/products", { auth: false });
+  products(params: ProductSearchParams = {}) {
+    const searchParams = new URLSearchParams();
+
+    if (params.keyword?.trim()) {
+      searchParams.set("keyword", params.keyword.trim());
+    }
+    if (params.category?.trim()) {
+      searchParams.set("category", params.category.trim());
+    }
+    if (params.series?.trim()) {
+      searchParams.set("series", params.series.trim());
+    }
+    if (params.status) {
+      searchParams.set("status", params.status);
+    }
+    if (params.inStockOnly) {
+      searchParams.set("inStockOnly", "true");
+    }
+    if (params.sort) {
+      searchParams.set("sort", params.sort);
+    }
+
+    const query = searchParams.toString();
+    return request<Product[]>(`/api/products${query ? `?${query}` : ""}`, { auth: false });
   },
 
   product(id: string | number) {
@@ -189,8 +212,11 @@ export const api = {
     return request<AdminOrder>(`/api/admin/orders/${orderId}`);
   },
 
-  updateAdminOrderStatus(orderId: number, status: OrderStatus) {
-    return request<AdminOrder>(`/api/admin/orders/${orderId}/status`, { method: "PATCH", body: { status } });
+  updateAdminOrderStatus(orderId: number, status: OrderStatus, courierCompany?: string, trackingNumber?: string) {
+    return request<AdminOrder>(`/api/admin/orders/${orderId}/status`, {
+      method: "PATCH",
+      body: { status, courierCompany, trackingNumber }
+    });
   },
 
   adminCancelPayment(body: { orderId: number; cancelReason: string }) {
