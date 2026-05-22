@@ -492,6 +492,112 @@ select {
   font-weight: 800;
 }
 
+.payment-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  gap: 24px;
+  align-items: start;
+}
+
+.payment-main {
+  display: grid;
+  gap: 16px;
+}
+
+.payment-card-header,
+.payment-summary-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.payment-card-header p,
+.payment-summary-header p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.payment-table-wrap {
+  overflow: hidden;
+}
+
+.payment-table {
+  min-width: 640px;
+}
+
+.payment-table td:first-child {
+  width: 42%;
+}
+
+.payment-delivery-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #b8d7c5;
+  border-radius: 8px;
+  background: #f3fbf6;
+}
+
+.payment-delivery-card > div {
+  display: grid;
+  gap: 4px;
+}
+
+.payment-delivery-address {
+  grid-column: 1 / -1;
+}
+
+.payment-summary {
+  position: sticky;
+  top: 84px;
+}
+
+.payment-total-box {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-muted);
+}
+
+.payment-total-box span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.payment-total-box strong {
+  color: var(--brand);
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.payment-meta-list {
+  display: grid;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.payment-actions {
+  display: grid;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.payment-primary-button {
+  min-height: 52px;
+  font-weight: 800;
+}
+
+.payment-cancel-button {
+  min-height: 44px;
+  background: #fff;
+  font-weight: 700;
+}
+
 .product-detail-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
@@ -661,6 +767,36 @@ select {
 
   .cart-quantity-input {
     max-width: 78px;
+  }
+
+  .payment-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-summary {
+    position: static;
+  }
+
+  .payment-table-wrap {
+    overflow-x: auto;
+  }
+
+  .payment-table {
+    min-width: 600px;
+  }
+
+  .payment-card-header,
+  .payment-summary-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .payment-delivery-card {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-primary-button {
+    min-height: 54px;
   }
 
   .product-detail-layout {

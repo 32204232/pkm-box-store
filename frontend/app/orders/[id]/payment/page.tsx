@@ -126,79 +126,120 @@ export default function OrderPaymentPage() {
         ) : !order ? (
           <div className="alert">표시할 주문 정보가 없습니다.</div>
         ) : (
-          <div className="stack">
-            <div className="card">
-              <div className="card-body stack">
-                <div className="row">
-                  <span className="muted">주문번호</span>
-                  <strong>{order.orderUid}</strong>
+          <div className="payment-layout">
+            <section className="payment-main">
+              <div className="card">
+                <div className="card-body stack">
+                  <div className="payment-card-header">
+                    <div>
+                      <strong>주문 상품</strong>
+                      <p>결제할 상품과 수량을 최종 확인해 주세요.</p>
+                    </div>
+                    <span className="badge">{order.items.length}개 상품</span>
+                  </div>
+                  <div className="table-wrap payment-table-wrap">
+                    <table className="table payment-table">
+                      <thead>
+                        <tr>
+                          <th>상품명</th>
+                          <th>단가</th>
+                          <th>수량</th>
+                          <th>합계</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {order.items.map((item) => (
+                          <tr key={item.id}>
+                            <td>
+                              <strong>{item.productNameSnapshot}</strong>
+                            </td>
+                            <td>{formatPrice(item.orderPrice)}</td>
+                            <td>{item.quantity}</td>
+                            <td>
+                              <strong>{formatPrice(item.lineTotal)}</strong>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                <div className="row">
-                  <span className="muted">주문 상태</span>
+              </div>
+
+              <div className="card">
+                <div className="card-body stack">
+                  <div className="payment-card-header">
+                    <div>
+                      <strong>배송 정보</strong>
+                      <p>결제 후 아래 주소로 상품이 발송됩니다.</p>
+                    </div>
+                  </div>
+                  <div className="payment-delivery-card">
+                    <div>
+                      <span className="muted">수령인</span>
+                      <strong>{order.receiverName}</strong>
+                    </div>
+                    <div>
+                      <span className="muted">연락처</span>
+                      <strong>{order.receiverPhone}</strong>
+                    </div>
+                    <div className="payment-delivery-address">
+                      <span className="muted">주소</span>
+                      <strong>{order.address}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <aside className="card payment-summary">
+              <div className="card-body stack">
+                <div className="payment-summary-header">
+                  <div>
+                    <strong>결제 확인</strong>
+                    <p>주문번호 {order.orderUid}</p>
+                  </div>
                   <StatusBadge value={order.status} />
                 </div>
-                <div className="row">
-                  <span className="muted">총 금액</span>
+
+                <div className="payment-total-box">
+                  <span>총 결제 금액</span>
                   <strong>{formatPrice(order.totalPrice)}</strong>
                 </div>
-                <div className="row">
-                  <span className="muted">만료 시간</span>
-                  <strong>{formatDateTime(order.expiresAt)}</strong>
-                </div>
-              </div>
-            </div>
 
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>상품명</th>
-                    <th>단가</th>
-                    <th>수량</th>
-                    <th>합계</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {order.items.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.productNameSnapshot}</td>
-                      <td>{formatPrice(item.orderPrice)}</td>
-                      <td>{item.quantity}</td>
-                      <td>{formatPrice(item.lineTotal)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                <div className="payment-meta-list">
+                  <div className="row">
+                    <span className="muted">주문 상태</span>
+                    <StatusBadge value={order.status} />
+                  </div>
+                  <div className="row">
+                    <span className="muted">만료 시간</span>
+                    <strong>{formatDateTime(order.expiresAt)}</strong>
+                  </div>
+                </div>
 
-            <div className="card">
-              <div className="card-body stack">
-                <strong>배송 정보</strong>
-                <div className="row">
-                  <span className="muted">수령인</span>
-                  <span>{order.receiverName}</span>
-                </div>
-                <div className="row">
-                  <span className="muted">연락처</span>
-                  <span>{order.receiverPhone}</span>
-                </div>
-                <div className="row">
-                  <span className="muted">주소</span>
-                  <span>{order.address}</span>
-                </div>
+                {order.status === "PAYMENT_PENDING" && (
+                  <div className="payment-actions">
+                    <button
+                      className="button primary payment-primary-button"
+                      type="button"
+                      onClick={startPayment}
+                      disabled={paying || canceling}
+                    >
+                      {paying ? "결제창 여는 중..." : "결제하기"}
+                    </button>
+                    <button
+                      className="button danger payment-cancel-button"
+                      type="button"
+                      onClick={cancelPayment}
+                      disabled={paying || canceling}
+                    >
+                      {canceling ? "취소 처리 중..." : "결제 취소"}
+                    </button>
+                  </div>
+                )}
               </div>
-            </div>
-
-            {order.status === "PAYMENT_PENDING" && (
-              <div className="action-group">
-                <button className="button primary" type="button" onClick={startPayment} disabled={paying || canceling}>
-                  결제하기
-                </button>
-                <button className="button danger" type="button" onClick={cancelPayment} disabled={paying || canceling}>
-                  결제 취소
-                </button>
-              </div>
-            )}
+            </aside>
           </div>
         )}
       </div>
