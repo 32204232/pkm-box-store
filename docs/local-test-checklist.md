@@ -34,6 +34,11 @@ FLUSH PRIVILEGES;
 
 - [ ] 스키마가 없으면 최초 구동 시 임시로 `JPA_DDL_AUTO=update`를 사용한다.
 - [ ] `JPA_DDL_AUTO=validate`를 사용할 경우 필요한 테이블이 이미 생성되어 있어야 한다.
+- [ ] 기본 로컬/운영 흐름은 `JPA_DDL_AUTO=validate`와 Flyway migration을 함께 사용한다.
+- [ ] 새 엔티티나 컬럼을 추가하면 `backend/src/main/resources/db/migration`에 MySQL migration SQL을 추가한다.
+- [ ] migration SQL은 기존 데이터 삭제, 테이블 drop, 운영 Secret 기록을 포함하지 않는다.
+- [ ] 기존 DB에 Flyway 이력이 없으면 `FLYWAY_BASELINE_ON_MIGRATE=true`, `FLYWAY_BASELINE_VERSION=0`으로 baseline 후 신규 migration을 실행한다.
+- [ ] `JPA_DDL_AUTO=update`는 로컬 긴급 확인용으로만 사용하고, 작업 완료 전에는 migration SQL을 작성한다.
 
 ### Backend 환경변수
 
@@ -43,6 +48,9 @@ FLUSH PRIVILEGES;
   - [ ] `DB_URL`
   - [ ] `DB_USERNAME`
   - [ ] `DB_PASSWORD`
+  - [ ] `FLYWAY_ENABLED`
+  - [ ] `FLYWAY_BASELINE_ON_MIGRATE`
+  - [ ] `FLYWAY_BASELINE_VERSION`
   - [ ] `JWT_SECRET`
   - [ ] `MAIL_MODE`
   - [ ] `MAIL_FROM`
