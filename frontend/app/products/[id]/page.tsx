@@ -10,6 +10,8 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { api, formatPrice } from "@/lib/api";
 import type { Product } from "@/types/api";
 
+const RECENT_VIEWED_KEY = "pkm_recent_viewed_products";
+
 function formatReleaseDate(value: string | null) {
   if (!value) {
     return "미정";
@@ -75,6 +77,30 @@ export default function ProductDetailPage() {
       .then((products) => setRelatedProducts(products.filter((item) => item.id !== product.id).slice(0, 6)))
       .catch(() => setRelatedProducts([]))
       .finally(() => setRelatedLoading(false));
+  }, [product]);
+
+  useEffect(() => {
+    if (!product) {
+      return;
+    }
+
+    try {
+      const current = window.localStorage.getItem(RECENT_VIEWED_KEY);
+      const viewed = current ? JSON.parse(current) : [];
+      const next = [
+        {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          imageUrl: product.imageUrl
+        },
+        ...(Array.isArray(viewed) ? viewed.filter((item: { id: number }) => item.id !== product.id) : [])
+      ].slice(0, 10);
+
+      window.localStorage.setItem(RECENT_VIEWED_KEY, JSON.stringify(next));
+    } catch {
+      // Recent-viewed storage is optional UI state.
+    }
   }, [product]);
 
   const isPurchasable = product?.status === "ON_SALE" && product.stockQuantity > 0;
