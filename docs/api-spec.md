@@ -27,7 +27,8 @@ Request:
 {
   "email": "member@example.com",
   "password": "password123",
-  "name": "홍길동"
+  "name": "홍길동",
+  "emailVerificationToken": "verification-token-from-email-verification"
 }
 ```
 
@@ -47,6 +48,82 @@ Response:
 주요 예외:
 
 - `EMAIL_ALREADY_EXISTS`
+- `EMAIL_VERIFICATION_REQUIRED`
+- `EMAIL_VERIFICATION_TOKEN_INVALID`
+- `EMAIL_VERIFICATION_TOKEN_EXPIRED`
+- `EMAIL_VERIFICATION_TOKEN_USED`
+- `INVALID_REQUEST`
+
+### 이메일 인증번호 발송
+
+- Method: `POST`
+- URL: `/api/members/email-verifications/send`
+- 인증: 불필요
+
+Request:
+
+```json
+{
+  "email": "member@example.com",
+  "purpose": "SIGNUP"
+}
+```
+
+`purpose` 값:
+
+- `SIGNUP`: 회원가입 이메일 인증
+- `PASSWORD_RESET`: 비밀번호 재설정 이메일 인증
+
+Response:
+
+```json
+{
+  "expiresAt": "2026-05-21T09:05:00",
+  "resendAvailableAt": "2026-05-21T09:01:00"
+}
+```
+
+주요 예외:
+
+- `EMAIL_ALREADY_EXISTS`
+- `EMAIL_VERIFICATION_RESEND_TOO_SOON`
+- `EMAIL_VERIFICATION_TOO_MANY_ATTEMPTS`
+- `EMAIL_SEND_FAILED`
+- `INVALID_REQUEST`
+
+### 이메일 인증번호 확인
+
+- Method: `POST`
+- URL: `/api/members/email-verifications/verify`
+- 인증: 불필요
+
+Request:
+
+```json
+{
+  "email": "member@example.com",
+  "purpose": "SIGNUP",
+  "code": "123456"
+}
+```
+
+Response:
+
+```json
+{
+  "verificationToken": "one-time-verification-token",
+  "expiresAt": "2026-05-21T09:15:00"
+}
+```
+
+`verificationToken`은 원문으로 한 번만 응답되고 DB에는 해시로 저장된다. 회원가입에는 `SIGNUP` 토큰만, 비밀번호 재설정에는 `PASSWORD_RESET` 토큰만 사용할 수 있다.
+
+주요 예외:
+
+- `EMAIL_VERIFICATION_REQUIRED`
+- `EMAIL_VERIFICATION_CODE_EXPIRED`
+- `EMAIL_VERIFICATION_CODE_INVALID`
+- `EMAIL_VERIFICATION_TOO_MANY_ATTEMPTS`
 - `INVALID_REQUEST`
 
 ### 로그인
@@ -76,6 +153,32 @@ Response:
 
 - `MEMBER_NOT_FOUND`
 - `INVALID_PASSWORD`
+- `INVALID_REQUEST`
+
+### 비밀번호 재설정
+
+- Method: `POST`
+- URL: `/api/members/password-reset`
+- 인증: 불필요
+
+Request:
+
+```json
+{
+  "email": "member@example.com",
+  "verificationToken": "verification-token-from-password-reset",
+  "newPassword": "newPassword123"
+}
+```
+
+Response: `204 No Content`
+
+주요 예외:
+
+- `MEMBER_NOT_FOUND`
+- `EMAIL_VERIFICATION_TOKEN_INVALID`
+- `EMAIL_VERIFICATION_TOKEN_EXPIRED`
+- `EMAIL_VERIFICATION_TOKEN_USED`
 - `INVALID_REQUEST`
 
 ## 2. 상품 API

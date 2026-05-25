@@ -1,6 +1,7 @@
 export type ProductStatus = "ON_SALE" | "SOLD_OUT" | "COMING_SOON" | "HIDDEN";
 export type ProductSort = "latest" | "priceAsc" | "priceDesc" | "releaseDateDesc";
 export type MemberRole = "ROLE_MEMBER" | "ROLE_ADMIN";
+export type EmailVerificationPurpose = "SIGNUP" | "PASSWORD_RESET";
 export type OrderStatus =
   | "PAYMENT_PENDING"
   | "PAID"
@@ -40,6 +41,38 @@ export interface MemberResponse {
 
 export interface LoginResponse {
   accessToken: string;
+}
+
+export interface EmailVerificationSendRequest {
+  email: string;
+  purpose: EmailVerificationPurpose;
+}
+
+export interface EmailVerificationSendResponse {
+  expiresAt: string;
+  resendAvailableAt: string;
+}
+
+export interface EmailVerificationVerifyRequest extends EmailVerificationSendRequest {
+  code: string;
+}
+
+export interface EmailVerificationVerifyResponse {
+  verificationToken: string;
+  expiresAt: string;
+}
+
+export interface SignupRequest {
+  email: string;
+  password: string;
+  name: string;
+  emailVerificationToken: string;
+}
+
+export interface PasswordResetRequest {
+  email: string;
+  verificationToken: string;
+  newPassword: string;
 }
 
 export interface Product {

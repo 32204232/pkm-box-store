@@ -44,6 +44,8 @@ FLUSH PRIVILEGES;
   - [ ] `DB_USERNAME`
   - [ ] `DB_PASSWORD`
   - [ ] `JWT_SECRET`
+  - [ ] `MAIL_MODE`
+  - [ ] `MAIL_FROM`
   - [ ] `TOSS_PAYMENTS_SECRET_KEY`
   - [ ] `CORS_ALLOWED_ORIGINS`
   - [ ] `AWS_S3_BUCKET`
@@ -51,6 +53,9 @@ FLUSH PRIVILEGES;
   - [ ] `AWS_ACCESS_KEY_ID`
   - [ ] `AWS_SECRET_ACCESS_KEY`
 - [ ] Toss 키, AWS 키, DB 비밀번호, JWT Secret은 `.env`, `.env.local`, 문서, 커밋에 남기지 않는다.
+- [ ] 로컬 이메일 인증은 기본적으로 `MAIL_MODE=LOG`를 사용한다.
+- [ ] 실제 SMTP를 테스트할 때만 `MAIL_MODE=SMTP`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`를 로컬 환경변수로 설정한다.
+- [ ] SMTP 비밀번호나 앱 비밀번호는 문서, 코드, 커밋에 남기지 않는다.
 - [ ] S3 실제 업로드를 테스트하려면 유효한 버킷, 리전, 접근 키, 권한 정책을 준비한다.
 
 ### Frontend 환경변수
@@ -90,7 +95,11 @@ npm run dev
 
 ## 3. 회원/인증 흐름
 
-- [ ] `/signup`에서 회원가입한다.
+- [ ] `MAIL_MODE=LOG`로 백엔드를 실행한다.
+- [ ] `/signup`에서 이메일을 입력하고 인증번호 발송을 누른다.
+- [ ] 백엔드 로그의 `[EMAIL_VERIFICATION] purpose=SIGNUP` 항목에서 인증번호를 확인한다.
+- [ ] 인증번호를 입력해 이메일 인증을 완료한다.
+- [ ] 인증 완료 후 회원가입한다.
 - [ ] `/login`에서 로그인한다.
 - [ ] localStorage에 `pkm_access_token`이 저장되는지 확인한다.
 - [ ] Header에 장바구니와 주문 메뉴가 보이는지 확인한다.
@@ -98,6 +107,11 @@ npm run dev
 - [ ] `/cart`, `/orders`, `/admin` 같은 보호 페이지에 접근한다.
 - [ ] `/login?reason=expired`로 이동하는지 확인한다.
 - [ ] 로그인 만료 안내 메시지가 표시되는지 확인한다.
+- [ ] `/login`에서 비밀번호 찾기 링크를 클릭한다.
+- [ ] `/password-reset`에서 이메일 인증번호를 발송한다.
+- [ ] 백엔드 로그의 `[EMAIL_VERIFICATION] purpose=PASSWORD_RESET` 항목에서 인증번호를 확인한다.
+- [ ] 인증번호 확인 후 새 비밀번호로 재설정한다.
+- [ ] 기존 비밀번호로 로그인이 실패하고 새 비밀번호로 로그인이 성공하는지 확인한다.
 
 ## 4. 상품/장바구니/주문 흐름
 

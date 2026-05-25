@@ -7,17 +7,23 @@ import type {
   CartItem,
   DeliveryAddress,
   DeliveryAddressRequest,
+  EmailVerificationSendRequest,
+  EmailVerificationSendResponse,
+  EmailVerificationVerifyRequest,
+  EmailVerificationVerifyResponse,
   LoginResponse,
   MemberResponse,
   Order,
   OrderDeliveryAddressUpdateRequest,
   OrderStatus,
+  PasswordResetRequest,
   PaymentConfirmRequest,
   PaymentResponse,
   Product,
   ProductCreateRequest,
   ProductSearchParams,
-  ProductUpdateRequest
+  ProductUpdateRequest,
+  SignupRequest
 } from "@/types/api";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
@@ -112,7 +118,23 @@ function handleUnauthorizedResponse() {
 }
 
 export const api = {
-  async signup(body: { email: string; password: string; name: string }) {
+  sendEmailVerification(body: EmailVerificationSendRequest) {
+    return request<EmailVerificationSendResponse>("/api/members/email-verifications/send", {
+      method: "POST",
+      body,
+      auth: false
+    });
+  },
+
+  verifyEmailVerification(body: EmailVerificationVerifyRequest) {
+    return request<EmailVerificationVerifyResponse>("/api/members/email-verifications/verify", {
+      method: "POST",
+      body,
+      auth: false
+    });
+  },
+
+  async signup(body: SignupRequest) {
     return request<MemberResponse>("/api/members/signup", { method: "POST", body, auth: false });
   },
 
@@ -120,6 +142,10 @@ export const api = {
     const response = await request<LoginResponse>("/api/members/login", { method: "POST", body, auth: false });
     setAccessToken(response.accessToken);
     return response;
+  },
+
+  resetPassword(body: PasswordResetRequest) {
+    return request<void>("/api/members/password-reset", { method: "POST", body, auth: false });
   },
 
   products(params: ProductSearchParams = {}) {

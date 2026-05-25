@@ -35,6 +35,25 @@ jwt:
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
 
+mail:
+  mode: ${MAIL_MODE:LOG}
+  from: ${MAIL_FROM:no-reply@pkm-box-store.local}
+  host: ${MAIL_HOST:}
+  port: ${MAIL_PORT:587}
+  username: ${MAIL_USERNAME:}
+  password: ${MAIL_PASSWORD:}
+  smtp-auth: ${MAIL_SMTP_AUTH:true}
+  smtp-starttls-enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
+
+email:
+  verification:
+    code-ttl-seconds: ${EMAIL_VERIFICATION_CODE_TTL_SECONDS:300}
+    token-ttl-seconds: ${EMAIL_VERIFICATION_TOKEN_TTL_SECONDS:600}
+    resend-cooldown-seconds: ${EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS:60}
+    max-failed-attempts: ${EMAIL_VERIFICATION_MAX_FAILED_ATTEMPTS:5}
+    max-sends-per-window: ${EMAIL_VERIFICATION_MAX_SENDS_PER_WINDOW:5}
+    send-window-seconds: ${EMAIL_VERIFICATION_SEND_WINDOW_SECONDS:3600}
+
 toss:
   payments:
     secret-key: ${TOSS_PAYMENTS_SECRET_KEY:}

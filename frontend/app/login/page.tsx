@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Message } from "@/components/Message";
 import { api } from "@/lib/api";
@@ -49,29 +50,50 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="stack">
-      <div className="section-header">
-        <h1>로그인</h1>
-      </div>
-      <form className="form" onSubmit={submit}>
-        <label>
-          이메일
-          <input className="input" value={email} onChange={(event) => setEmail(event.target.value)} />
-        </label>
-        <label>
-          비밀번호
-          <input
-            className="input"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </label>
-        <button className="button primary" disabled={submitting}>
-          로그인
-        </button>
-        <Message message={message} />
-      </form>
+    <div className="auth-page">
+      <section className="auth-content" aria-label="로그인">
+        <div className="auth-brand">
+          <Link href="/" className="auth-logo">
+            PKM Box Store
+          </Link>
+          <p>Card boxes for collectors.</p>
+        </div>
+
+        <form className="auth-form" onSubmit={submit}>
+          <label>
+            <span>이메일</span>
+            <input
+              className="auth-input"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="예: pkm@example.com"
+              autoComplete="email"
+            />
+          </label>
+          <label>
+            <span>비밀번호</span>
+            <input
+              className="auth-input"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="비밀번호를 입력해 주세요"
+              autoComplete="current-password"
+            />
+          </label>
+          <button className="button primary auth-submit" disabled={submitting}>
+            {submitting ? "로그인 중..." : "로그인"}
+          </button>
+          <Message message={message} />
+        </form>
+
+        <div className="auth-links" aria-label="회원 메뉴">
+          <span>계정이 아직 없나요?</span>
+          <Link href="/signup">회원가입</Link>
+          <Link href="/password-reset">비밀번호 찾기</Link>
+        </div>
+      </section>
     </div>
   );
 }

@@ -56,6 +56,10 @@ public class Member {
         return new Member(email, encodedPassword, name, MemberRole.ROLE_MEMBER);
     }
 
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
     @PrePersist
     void prePersist() {
         LocalDateTime now = LocalDateTime.now();

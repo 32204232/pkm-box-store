@@ -6,15 +6,13 @@ import { useRouter } from "next/navigation";
 import { Message } from "@/components/Message";
 import { api } from "@/lib/api";
 
-export default function SignupPage() {
+export default function PasswordResetPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [emailVerificationToken, setEmailVerificationToken] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [verificationToken, setVerificationToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
   const [sendingCode, setSendingCode] = useState(false);
   const [verifyingCode, setVerifyingCode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -25,13 +23,13 @@ export default function SignupPage() {
     }
 
     setSendingCode(true);
-    setVerificationMessage(null);
-    setEmailVerificationToken("");
+    setMessage(null);
+    setVerificationToken("");
     try {
-      await api.sendEmailVerification({ email, purpose: "SIGNUP" });
-      setVerificationMessage("인증번호를 발송했습니다. 메일함을 확인해 주세요.");
+      await api.sendEmailVerification({ email, purpose: "PASSWORD_RESET" });
+      setMessage("가입된 이메일이라면 인증번호가 발송됩니다.");
     } catch (error) {
-      setVerificationMessage(error instanceof Error ? error.message : "인증번호 발송 실패");
+      setMessage(error instanceof Error ? error.message : "인증번호 발송 실패");
     } finally {
       setSendingCode(false);
     }
@@ -43,14 +41,14 @@ export default function SignupPage() {
     }
 
     setVerifyingCode(true);
-    setVerificationMessage(null);
+    setMessage(null);
     try {
-      const response = await api.verifyEmailVerification({ email, purpose: "SIGNUP", code });
-      setEmailVerificationToken(response.verificationToken);
-      setVerificationMessage("이메일 인증이 완료되었습니다.");
+      const response = await api.verifyEmailVerification({ email, purpose: "PASSWORD_RESET", code });
+      setVerificationToken(response.verificationToken);
+      setMessage("이메일 인증이 완료되었습니다. 새 비밀번호를 입력해 주세요.");
     } catch (error) {
-      setEmailVerificationToken("");
-      setVerificationMessage(error instanceof Error ? error.message : "인증번호 확인 실패");
+      setVerificationToken("");
+      setMessage(error instanceof Error ? error.message : "인증번호 확인 실패");
     } finally {
       setVerifyingCode(false);
     }
@@ -58,8 +56,8 @@ export default function SignupPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting || !emailVerificationToken) {
-      if (!emailVerificationToken) {
+    if (submitting || !verificationToken) {
+      if (!verificationToken) {
         setMessage("이메일 인증을 완료해 주세요.");
       }
       return;
@@ -68,35 +66,25 @@ export default function SignupPage() {
     setSubmitting(true);
     setMessage(null);
     try {
-      await api.signup({ email, password, name, emailVerificationToken });
+      await api.resetPassword({ email, verificationToken, newPassword });
       router.push("/login");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "회원가입 실패");
+      setMessage(error instanceof Error ? error.message : "비밀번호 재설정 실패");
       setSubmitting(false);
     }
   }
 
   return (
     <div className="auth-page">
-      <section className="auth-content" aria-label="회원가입">
+      <section className="auth-content" aria-label="비밀번호 재설정">
         <div className="auth-brand">
           <Link href="/" className="auth-logo">
             PKM Box Store
           </Link>
-          <p>Card boxes for collectors.</p>
+          <p>비밀번호 재설정</p>
         </div>
 
         <form className="auth-form" onSubmit={submit}>
-          <label>
-            <span>이름</span>
-            <input
-              className="auth-input"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="이름을 입력해 주세요"
-              autoComplete="name"
-            />
-          </label>
           <label>
             <span>이메일</span>
             <input
@@ -105,7 +93,7 @@ export default function SignupPage() {
               value={email}
               onChange={(event) => {
                 setEmail(event.target.value);
-                setEmailVerificationToken("");
+                setVerificationToken("");
               }}
               placeholder="예: pkm@example.com"
               autoComplete="email"
@@ -123,7 +111,7 @@ export default function SignupPage() {
               value={code}
               onChange={(event) => {
                 setCode(event.target.value);
-                setEmailVerificationToken("");
+                setVerificationToken("");
               }}
               placeholder="6자리 인증번호"
               inputMode="numeric"
@@ -141,27 +129,26 @@ export default function SignupPage() {
               {verifyingCode ? "확인 중..." : "인증 확인"}
             </button>
           </div>
-          <Message message={verificationMessage} />
           <label>
-            <span>비밀번호</span>
+            <span>새 비밀번호</span>
             <input
               className="auth-input"
               type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="비밀번호를 입력해 주세요"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              placeholder="새 비밀번호를 입력해 주세요"
               autoComplete="new-password"
+              disabled={!verificationToken}
             />
           </label>
-          <button className="button primary auth-submit" disabled={submitting || !emailVerificationToken}>
-            {submitting ? "가입 중..." : "회원가입"}
+          <button className="button primary auth-submit" disabled={submitting || !verificationToken}>
+            {submitting ? "변경 중..." : "비밀번호 재설정"}
           </button>
           <Message message={message} />
         </form>
 
         <div className="auth-links" aria-label="회원 메뉴">
-          <span>이미 계정이 있나요?</span>
-          <Link href="/login">로그인</Link>
+          <Link href="/login">로그인으로 돌아가기</Link>
         </div>
       </section>
     </div>
