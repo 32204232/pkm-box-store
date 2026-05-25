@@ -697,6 +697,51 @@ Response:
 - `MEMBER_NOT_FOUND`
 - `401 Unauthorized`
 
+### 주문 배송지 변경
+
+- Method: `PATCH`
+- URL: `/api/orders/{orderId}/delivery-address`
+- 인증: 회원 필요
+
+Request: 저장된 배송지로 변경하는 경우
+
+```json
+{
+  "deliveryAddressId": 10
+}
+```
+
+Request: 직접 입력 배송지로 변경하는 경우
+
+```json
+{
+  "receiverName": "홍길동",
+  "receiverPhone": "010-1234-5678",
+  "zipCode": "06123",
+  "address1": "서울시 강남구 테헤란로 1",
+  "address2": "101동 1001호"
+}
+```
+
+`deliveryAddressId`가 있으면 로그인한 사용자의 저장된 배송지를 주문 배송지 스냅샷으로 반영한다. `deliveryAddressId`가 없으면 직접 입력한 `receiverName`, `receiverPhone`, `zipCode`, `address1`, `address2`를 사용한다.
+
+처리 조건:
+
+- 로그인한 사용자의 본인 주문만 변경할 수 있다.
+- 주문 상태가 `PAYMENT_PENDING`일 때만 변경할 수 있다.
+- `PAID`, `FAILED`, `CANCELED`, `PREPARING`, `SHIPPED`, `DELIVERED`, `EXPIRED` 상태에서는 변경할 수 없다.
+
+Response: 주문 생성 응답과 동일한 객체 구조이며 변경된 배송 정보가 반영된다.
+
+주요 예외:
+
+- `ORDER_NOT_FOUND`
+- `ADDRESS_NOT_FOUND`
+- `INVALID_ADDRESS_REQUEST`
+- `INVALID_ORDER_STATUS`
+- `MEMBER_NOT_FOUND`
+- `401 Unauthorized`
+
 ### 내 주문 목록 조회
 
 - Method: `GET`

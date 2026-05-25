@@ -24,6 +24,7 @@ import com.pkm.store.domain.member.repository.MemberRepository;
 import com.pkm.store.domain.order.dto.AdminOrderResponse;
 import com.pkm.store.domain.order.dto.AdminOrderStatusUpdateRequest;
 import com.pkm.store.domain.order.dto.OrderCreateRequest;
+import com.pkm.store.domain.order.dto.OrderDeliveryAddressUpdateRequest;
 import com.pkm.store.domain.order.dto.OrderResponse;
 import com.pkm.store.domain.order.entity.Order;
 import com.pkm.store.domain.order.entity.OrderItem;
@@ -317,6 +318,86 @@ class OrderServiceTest {
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.OUT_OF_STOCK);
         verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void updateDeliveryAddressSucceedsWhenOrderIsPaymentPending() {
+        Order order = createOrder(OrderStatus.PAYMENT_PENDING);
+        DeliveryAddress address = createDeliveryAddress();
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+        given(deliveryAddressRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(address));
+
+        OrderResponse response = orderService.updateDeliveryAddress(1L, createDeliveryAddressUpdateRequest(1L));
+
+        assertThat(response.receiverName()).isEqualTo("Address Receiver");
+        assertThat(response.receiverPhone()).isEqualTo("010-2222-3333");
+        assertThat(response.address()).isEqualTo("12345 Seoul Address 1 Address 2");
+        assertThat(response.zipCode()).isEqualTo("12345");
+        assertThat(response.address1()).isEqualTo("Seoul Address 1");
+        assertThat(response.address2()).isEqualTo("Address 2");
+    }
+
+    @Test
+    void updateDeliveryAddressThrowsWhenOrderDoesNotBelongToCurrentMember() {
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.updateDeliveryAddress(1L, createDeliveryAddressUpdateRequest(1L)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.ORDER_NOT_FOUND);
+    }
+
+    @Test
+    void updateDeliveryAddressThrowsWhenOrderIsPaid() {
+        Order order = createOrder(OrderStatus.PAID);
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.updateDeliveryAddress(1L, createDeliveryAddressUpdateRequest(1L)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.INVALID_ORDER_STATUS);
+    }
+
+    @Test
+    void updateDeliveryAddressThrowsWhenDeliveryAddressDoesNotExist() {
+        Order order = createOrder(OrderStatus.PAYMENT_PENDING);
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+        given(deliveryAddressRepository.findByIdAndMember(999L, member)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.updateDeliveryAddress(1L, createDeliveryAddressUpdateRequest(999L)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.ADDRESS_NOT_FOUND);
+    }
+
+    @Test
+    void updateDeliveryAddressResponseContainsChangedDeliveryAddress() {
+        Order order = createOrder(OrderStatus.PAYMENT_PENDING);
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
+
+        OrderResponse response = orderService.updateDeliveryAddress(
+                1L,
+                new OrderDeliveryAddressUpdateRequest(
+                        null,
+                        "Manual Receiver",
+                        "010-9999-8888",
+                        "54321",
+                        "Busan Address 1",
+                        "Manual Address 2"
+                )
+        );
+
+        assertThat(response.receiverName()).isEqualTo("Manual Receiver");
+        assertThat(response.receiverPhone()).isEqualTo("010-9999-8888");
+        assertThat(response.address()).isEqualTo("54321 Busan Address 1 Manual Address 2");
+        assertThat(response.zipCode()).isEqualTo("54321");
+        assertThat(response.address1()).isEqualTo("Busan Address 1");
+        assertThat(response.address2()).isEqualTo("Manual Address 2");
     }
 
     @Test
@@ -623,6 +704,10 @@ class OrderServiceTest {
 
     private OrderCreateRequest createAddressRequest(Long deliveryAddressId) {
         return new OrderCreateRequest(null, null, null, deliveryAddressId);
+    }
+
+    private OrderDeliveryAddressUpdateRequest createDeliveryAddressUpdateRequest(Long deliveryAddressId) {
+        return new OrderDeliveryAddressUpdateRequest(deliveryAddressId, null, null, null, null, null);
     }
 
     private DeliveryAddress createDeliveryAddress() {

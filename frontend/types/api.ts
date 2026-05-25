@@ -121,6 +121,15 @@ export interface DeliveryAddressRequest {
   address2?: string | null;
 }
 
+export interface OrderDeliveryAddressUpdateRequest {
+  deliveryAddressId?: number | null;
+  receiverName?: string;
+  receiverPhone?: string;
+  zipCode?: string;
+  address1?: string;
+  address2?: string | null;
+}
+
 export interface OrderItem {
   id: number;
   productId: number;
@@ -138,6 +147,9 @@ export interface Order {
   receiverName: string;
   receiverPhone: string;
   address: string;
+  zipCode: string | null;
+  address1: string | null;
+  address2: string | null;
   expiresAt: string;
   items: OrderItem[];
   createdAt: string;

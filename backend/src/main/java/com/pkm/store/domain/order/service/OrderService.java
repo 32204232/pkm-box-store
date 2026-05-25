@@ -13,6 +13,7 @@ import com.pkm.store.domain.member.repository.MemberRepository;
 import com.pkm.store.domain.order.dto.AdminOrderResponse;
 import com.pkm.store.domain.order.dto.AdminOrderStatusUpdateRequest;
 import com.pkm.store.domain.order.dto.OrderCreateRequest;
+import com.pkm.store.domain.order.dto.OrderDeliveryAddressUpdateRequest;
 import com.pkm.store.domain.order.dto.OrderResponse;
 import com.pkm.store.domain.order.entity.Order;
 import com.pkm.store.domain.order.entity.OrderItem;
@@ -77,6 +78,34 @@ public class OrderService {
         Member member = getCurrentMember();
         Order order = orderRepository.findByIdAndMember(orderId, member)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        return OrderResponse.from(order);
+    }
+
+    @Transactional
+    public OrderResponse updateDeliveryAddress(Long orderId, OrderDeliveryAddressUpdateRequest request) {
+        Member member = getCurrentMember();
+        Order order = orderRepository.findByIdAndMember(orderId, member)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        if (order.getStatus() != OrderStatus.PAYMENT_PENDING) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+
+        if (request.deliveryAddressId() != null) {
+            DeliveryAddress address = deliveryAddressRepository.findByIdAndMember(request.deliveryAddressId(), member)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.ADDRESS_NOT_FOUND));
+            updateOrderDeliveryAddress(order, address);
+            return OrderResponse.from(order);
+        }
+
+        validateManualDeliveryAddress(request);
+        order.updateDeliveryAddress(
+                request.receiverName(),
+                request.receiverPhone(),
+                formatAddress(request.zipCode(), request.address1(), request.address2()),
+                request.zipCode(),
+                request.address1(),
+                request.address2()
+        );
         return OrderResponse.from(order);
     }
 
@@ -169,6 +198,26 @@ public class OrderService {
         if (isBlank(request.receiverName()) || isBlank(request.receiverPhone()) || isBlank(request.address())) {
             throw new BusinessException(ErrorCode.INVALID_ADDRESS_REQUEST);
         }
+    }
+
+    private void validateManualDeliveryAddress(OrderDeliveryAddressUpdateRequest request) {
+        if (isBlank(request.receiverName())
+                || isBlank(request.receiverPhone())
+                || isBlank(request.zipCode())
+                || isBlank(request.address1())) {
+            throw new BusinessException(ErrorCode.INVALID_ADDRESS_REQUEST);
+        }
+    }
+
+    private void updateOrderDeliveryAddress(Order order, DeliveryAddress address) {
+        order.updateDeliveryAddress(
+                address.getReceiverName(),
+                address.getReceiverPhone(),
+                formatAddress(address.getZipCode(), address.getAddress1(), address.getAddress2()),
+                address.getZipCode(),
+                address.getAddress1(),
+                address.getAddress2()
+        );
     }
 
     private boolean isBlank(String value) {

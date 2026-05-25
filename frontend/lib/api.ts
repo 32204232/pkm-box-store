@@ -10,6 +10,7 @@ import type {
   LoginResponse,
   MemberResponse,
   Order,
+  OrderDeliveryAddressUpdateRequest,
   OrderStatus,
   PaymentConfirmRequest,
   PaymentResponse,
@@ -223,6 +224,10 @@ export const api = {
 
   order(orderId: number) {
     return request<Order>(`/api/orders/${orderId}`);
+  },
+
+  updateOrderDeliveryAddress(orderId: number, body: OrderDeliveryAddressUpdateRequest) {
+    return request<Order>(`/api/orders/${orderId}/delivery-address`, { method: "PATCH", body });
   },
 
   confirmPayment(body: PaymentConfirmRequest) {

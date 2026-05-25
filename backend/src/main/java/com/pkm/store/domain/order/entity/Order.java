@@ -139,6 +139,26 @@ public class Order {
         totalPrice = totalPrice.add(orderItem.getLineTotal());
     }
 
+    public void updateDeliveryAddress(
+            String receiverName,
+            String receiverPhone,
+            String address,
+            String zipCode,
+            String address1,
+            String address2
+    ) {
+        if (status != OrderStatus.PAYMENT_PENDING) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+        validateDeliveryAddress(receiverName, receiverPhone, address, zipCode, address1);
+        this.receiverName = receiverName;
+        this.receiverPhone = receiverPhone;
+        this.address = address;
+        this.zipCode = zipCode;
+        this.address1 = address1;
+        this.address2 = address2;
+    }
+
     public void expire() {
         if (status != OrderStatus.PAYMENT_PENDING) {
             throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
@@ -194,6 +214,18 @@ public class Order {
     private void validateShippingInfo(String courierCompany, String trackingNumber) {
         if (isBlank(courierCompany) || isBlank(trackingNumber)) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+    }
+
+    private void validateDeliveryAddress(
+            String receiverName,
+            String receiverPhone,
+            String address,
+            String zipCode,
+            String address1
+    ) {
+        if (isBlank(receiverName) || isBlank(receiverPhone) || isBlank(address) || isBlank(zipCode) || isBlank(address1)) {
+            throw new BusinessException(ErrorCode.INVALID_ADDRESS_REQUEST);
         }
     }
 
