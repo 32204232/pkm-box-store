@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { api, formatPrice } from "@/lib/api";
 import { clearAccessToken, getCurrentRole, isLoggedIn, onAuthChanged } from "@/store/auth";
 import type { MemberRole, Product } from "@/types/api";
@@ -257,7 +258,8 @@ export function Header() {
         </nav>
       </div>
 
-      {menuOpen && (
+      {menuOpen &&
+        createPortal(
         <div className="drawer-overlay" role="presentation" onClick={closeMenu}>
           <aside className="header-drawer" aria-label="확장 메뉴" onClick={(event) => event.stopPropagation()}>
             <div className="header-drawer-head">
@@ -321,7 +323,8 @@ export function Header() {
               </div>
             )}
           </aside>
-        </div>
+        </div>,
+        document.body
       )}
 
       {searchOpen && (

@@ -1,14 +1,14 @@
 "use client";
 
 import { ANONYMOUS, loadTossPayments } from "@tosspayments/tosspayments-sdk";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Message } from "@/components/Message";
 import { RequireAuth } from "@/components/RequireAuth";
-import { StatusBadge } from "@/components/StatusBadge";
 import { api, formatPrice } from "@/lib/api";
-import type { DeliveryAddress, Order } from "@/types/api";
+import type { DeliveryAddress, Order, Product } from "@/types/api";
 
 const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
 const TOSS_ORDER_ID_PATTERN = /^[A-Za-z0-9_-]{6,64}$/;
@@ -55,6 +55,29 @@ function getOrderName(order: Order) {
   return otherCount > 0 ? `${firstName} 외 ${otherCount}개` : firstName;
 }
 
+function getOrderStatusLabel(status: Order["status"]) {
+  switch (status) {
+    case "PAYMENT_PENDING":
+      return "결제 대기";
+    case "PAID":
+      return "결제 완료";
+    case "PREPARING":
+      return "배송 준비";
+    case "SHIPPED":
+      return "배송 중";
+    case "DELIVERED":
+      return "배송 완료";
+    case "CANCELED":
+      return "취소 완료";
+    case "FAILED":
+      return "결제 실패";
+    case "EXPIRED":
+      return "주문 만료";
+    default:
+      return status;
+  }
+}
+
 export default function OrderPaymentPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -65,6 +88,7 @@ export default function OrderPaymentPage() {
   const [paying, setPaying] = useState(false);
   const [canceling, setCanceling] = useState(false);
   const [addresses, setAddresses] = useState<DeliveryAddress[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
   const [addressModalOpen, setAddressModalOpen] = useState(false);
   const [addAddressOpen, setAddAddressOpen] = useState(false);
@@ -105,6 +129,13 @@ export default function OrderPaymentPage() {
         setSelectedAddressId(defaultAddress?.id ?? null);
       })
       .catch(() => setAddresses([]));
+  }, []);
+
+  useEffect(() => {
+    api
+      .products({ sort: "latest" })
+      .then(setProducts)
+      .catch(() => setProducts([]));
   }, []);
 
   function formatDeliveryAddress(address: DeliveryAddress) {
@@ -305,15 +336,15 @@ export default function OrderPaymentPage() {
   }
 
   const canChangeDeliveryAddress = order?.status === "PAYMENT_PENDING" && !paying && !canceling && !changingAddress;
+  const canPay = order?.status === "PAYMENT_PENDING" && !paying && !canceling && !changingAddress;
+  const productMetaById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
 
   return (
     <RequireAuth>
-      <div className="stack">
-        <div className="section-header">
-          <div>
-            <h1>배송/결제</h1>
-            <p>주문 정보와 배송지를 확인한 뒤 Toss Payments 결제창으로 이동합니다.</p>
-          </div>
+      <div className="payment-page">
+        <div className="payment-page-head">
+          <h1>배송/결제</h1>
+          <p>주문 정보와 배송지를 확인한 뒤 결제를 진행해 주세요.</p>
         </div>
 
         <Message message={message} />
@@ -324,141 +355,127 @@ export default function OrderPaymentPage() {
           <div className="alert">표시할 주문 정보가 없습니다.</div>
         ) : (
           <div className="payment-checkout">
-            <section className="payment-main">
-              <div className="checkout-section">
-                <div className="payment-card-header">
-                  <div>
-                    <strong>배송 주소</strong>
-                    <p>일반 배송으로 주문 상품이 발송됩니다.</p>
-                  </div>
-                  <button
-                    className="checkout-text-button"
-                    type="button"
-                    onClick={() => {
-                      if (!canChangeDeliveryAddress) {
-                        setMessage("결제 대기 상태의 주문만 배송지를 변경할 수 있습니다.");
-                        return;
-                      }
-                      setAddressModalOpen(true);
-                    }}
-                    disabled={!canChangeDeliveryAddress}
-                  >
-                    {changingAddress ? "변경 중..." : "주소 변경"}
-                  </button>
-                </div>
-                <div className="payment-delivery-card">
-                  <div>
-                    <span className="muted">수령인</span>
-                    <strong>{order.receiverName}</strong>
-                  </div>
-                  <div>
-                    <span className="muted">연락처</span>
-                    <strong>{order.receiverPhone}</strong>
-                  </div>
-                  <div className="payment-delivery-address">
-                    <span className="muted">주소</span>
-                    <strong>{order.address}</strong>
-                  </div>
-                  <div className="payment-delivery-request">
-                    <span>요청사항 없음</span>
-                  </div>
-                </div>
+            <section className="checkout-section payment-address-section">
+              <div className="payment-card-header">
+                <strong>배송 주소</strong>
+                <button
+                  className="checkout-text-button"
+                  type="button"
+                  onClick={() => {
+                    if (!canChangeDeliveryAddress) {
+                      setMessage("결제 대기 상태의 주문만 배송지를 변경할 수 있습니다.");
+                      return;
+                    }
+                    setAddressModalOpen(true);
+                  }}
+                  disabled={!canChangeDeliveryAddress}
+                >
+                  {changingAddress ? "변경 중..." : "주소 변경"}
+                </button>
               </div>
-
-              <div className="checkout-section">
-                <div className="payment-card-header">
-                  <div>
-                    <strong>주문 상품</strong>
-                    <p>결제할 상품과 수량을 최종 확인해 주세요.</p>
-                  </div>
-                  <span className="badge">{order.items.length}개 상품</span>
+              <div className="payment-info-list">
+                <div>
+                  <span>받는 분</span>
+                  <strong>{order.receiverName}</strong>
                 </div>
-                <div className="payment-item-list">
-                  {order.items.map((item) => (
-                    <article className="payment-item-card" key={item.id}>
-                      <div>
-                        <strong>{item.productNameSnapshot}</strong>
-                        <span>수량 {item.quantity}개</span>
-                      </div>
-                      <div>
-                        <span>{formatPrice(item.orderPrice)}</span>
-                        <strong>{formatPrice(item.lineTotal)}</strong>
-                      </div>
-                    </article>
-                  ))}
+                <div>
+                  <span>연락처</span>
+                  <strong>{order.receiverPhone}</strong>
                 </div>
-              </div>
-
-              <div className="checkout-section">
-                <div className="payment-card-header">
-                  <div>
-                    <strong>쿠폰</strong>
-                    <p>현재 사용할 수 있는 쿠폰 기능은 제공되지 않습니다.</p>
-                  </div>
+                <div>
+                  <span>주소</span>
+                  <strong>{order.address}</strong>
                 </div>
-              </div>
-
-              <div className="checkout-section">
-                <div className="payment-card-header">
-                  <div>
-                    <strong>결제 방법</strong>
-                    <p>결제 수단 선택은 Toss Payments 결제창에서 진행됩니다.</p>
-                  </div>
+                <div>
+                  <span>배송 요청사항</span>
+                  <strong>요청사항 없음</strong>
                 </div>
-                <div className="payment-method-note">Toss Payments</div>
               </div>
             </section>
 
-            <aside className="payment-summary">
-              <div className="checkout-section">
-                <div className="payment-summary-header">
-                  <div>
-                    <strong>최종 주문 정보</strong>
-                    <p>주문번호 {order.orderUid}</p>
-                  </div>
-                  <StatusBadge value={order.status} />
-                </div>
+            <section className="checkout-section payment-products-section">
+              <div className="payment-card-header">
+                <strong>주문 상품 및 쿠폰</strong>
+                <span>{order.items.length}건</span>
+              </div>
+              <div className="payment-item-list">
+                {order.items.map((item) => {
+                  const product = productMetaById.get(item.productId);
+                  return (
+                    <article className="payment-item-card" key={item.id}>
+                      <div className="payment-item-image">
+                        {product?.imageUrl ? (
+                          <Image src={product.imageUrl} alt={item.productNameSnapshot} fill sizes="86px" unoptimized />
+                        ) : (
+                          <span>PKM</span>
+                        )}
+                      </div>
+                      <div className="payment-item-info">
+                        <strong>{item.productNameSnapshot}</strong>
+                        <span>{product ? `${product.category} · ${product.series}` : "주문 상품"}</span>
+                        <em>일반 배송 · 수량 {item.quantity}개</em>
+                      </div>
+                      <div className="payment-item-price">
+                        <span>상품 금액</span>
+                        <strong>{formatPrice(item.lineTotal)}</strong>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+              <div className="payment-coupon-disabled">
+                <span>쿠폰</span>
+                <strong>사용 가능한 쿠폰이 없습니다.</strong>
+              </div>
+            </section>
 
-                <div className="payment-total-box">
+            <section className="checkout-section payment-method-section">
+              <div className="payment-card-header">
+                <strong>결제 방법</strong>
+              </div>
+              <div className="payment-method-note">
+                <strong>Toss Payments</strong>
+                <span>결제 수단은 Toss Payments 결제창에서 선택됩니다.</span>
+              </div>
+            </section>
+
+            <section className="checkout-section payment-summary-section">
+              <div className="payment-card-header">
+                <div>
+                  <strong>최종 주문 정보</strong>
+                  <p>주문번호 {order.orderUid}</p>
+                </div>
+                <span className="payment-status-chip">{getOrderStatusLabel(order.status)}</span>
+              </div>
+              <div className="payment-price-list">
+                <div>
+                  <span>총 상품 금액</span>
+                  <strong>{formatPrice(order.totalPrice)}</strong>
+                </div>
+                <div>
+                  <span>배송비</span>
+                  <strong>무료</strong>
+                </div>
+                <div>
+                  <span>할인 금액</span>
+                  <strong>{formatPrice(0)}</strong>
+                </div>
+                <div className="payment-price-total">
                   <span>총 결제 금액</span>
                   <strong>{formatPrice(order.totalPrice)}</strong>
                 </div>
-
-                <div className="payment-meta-list">
-                  <div className="row">
-                    <span className="muted">주문 상태</span>
-                    <StatusBadge value={order.status} />
-                  </div>
-                  <div className="row">
-                    <span className="muted">주문 상품</span>
-                    <strong>{order.items.length}개</strong>
-                  </div>
-                  <div className="row">
-                    <span className="muted">만료 시간</span>
-                    <strong>{formatDateTime(order.expiresAt)}</strong>
-                  </div>
+              </div>
+              <div className="payment-order-meta">
+                <div>
+                  <span>주문 상태</span>
+                  <strong>{getOrderStatusLabel(order.status)}</strong>
                 </div>
-
-                {order.status === "PAYMENT_PENDING" && (
-                  <div className="payment-actions">
-                    <button className="button primary payment-primary-button" type="button" onClick={startPayment} disabled={paying || canceling || changingAddress}>
-                      {paying ? "결제창 여는 중..." : `${formatPrice(order.totalPrice)} · 결제하기`}
-                    </button>
-                    <button className="button danger payment-cancel-button" type="button" onClick={cancelPayment} disabled={paying || canceling || changingAddress}>
-                      {canceling ? "취소 처리 중..." : "결제 취소"}
-                    </button>
-                  </div>
-                )}
+                <div>
+                  <span>만료 시간</span>
+                  <strong>{formatDateTime(order.expiresAt)}</strong>
+                </div>
               </div>
-            </aside>
-
-            {order.status === "PAYMENT_PENDING" && (
-              <div className="payment-sticky-action">
-                <button className="button primary payment-primary-button" type="button" onClick={startPayment} disabled={paying || canceling || changingAddress}>
-                  {paying ? "결제창 여는 중..." : `${formatPrice(order.totalPrice)} · 결제하기`}
-                </button>
-              </div>
-            )}
+            </section>
 
             {addressModalOpen && (
               <div className="checkout-modal-backdrop" role="presentation" onClick={() => setAddressModalOpen(false)}>
@@ -572,6 +589,21 @@ export default function OrderPaymentPage() {
                 </form>
               </div>
             )}
+          </div>
+        )}
+
+        {order && (
+          <div className="checkout-bottom-cta checkout-bottom-cta-payment">
+            <div className="checkout-bottom-cta-inner">
+              {order.status === "PAYMENT_PENDING" && (
+                <button className="checkout-bottom-secondary-button" type="button" onClick={cancelPayment} disabled={paying || canceling || changingAddress}>
+                  {canceling ? "취소 처리 중..." : "결제 취소"}
+                </button>
+              )}
+              <button className="button primary checkout-bottom-button payment-primary-button" type="button" onClick={startPayment} disabled={!canPay}>
+                {paying ? "결제 준비 중..." : `${formatPrice(order.totalPrice)} · 결제하기`}
+              </button>
+            </div>
           </div>
         )}
       </div>
