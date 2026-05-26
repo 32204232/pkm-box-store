@@ -45,6 +45,27 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             org.springframework.data.domain.Sort sort
     );
 
+    @Query("""
+            select p
+            from Product p
+            where (:keyword is null
+                   or lower(p.name) like lower(concat('%', :keyword, '%'))
+                   or lower(p.description) like lower(concat('%', :keyword, '%')))
+              and (:category is null or p.category = :category)
+              and (:series is null or p.series = :series)
+              and (:status is null or p.status = :status)
+              and (:lowStockOnly = false or p.stockQuantity <= :lowStockThreshold)
+            """)
+    List<Product> searchAdminProducts(
+            @Param("keyword") String keyword,
+            @Param("category") String category,
+            @Param("series") String series,
+            @Param("status") ProductStatus status,
+            @Param("lowStockOnly") boolean lowStockOnly,
+            @Param("lowStockThreshold") int lowStockThreshold,
+            org.springframework.data.domain.Sort sort
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Product p where p.id = :id")
     Optional<Product> findByIdWithPessimisticWriteLock(@Param("id") Long id);

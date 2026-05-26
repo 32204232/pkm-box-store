@@ -121,6 +121,10 @@ public class Order {
         return new Order(member, receiverName, receiverPhone, address, null, address, null);
     }
 
+    public static Order createPendingDelivery(Member member) {
+        return new Order(member, "배송지 미입력", "배송지 미입력", "배송/결제에서 입력", null, null, null);
+    }
+
     public static Order create(
             Member member,
             String receiverName,

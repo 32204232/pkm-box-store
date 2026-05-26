@@ -1,5 +1,6 @@
 package com.pkm.store.domain.product.controller;
 
+import com.pkm.store.domain.product.dto.AdminProductSearchCondition;
 import com.pkm.store.domain.product.dto.ProductCreateRequest;
 import com.pkm.store.domain.product.dto.ProductResponse;
 import com.pkm.store.domain.product.dto.ProductSearchCondition;
@@ -48,8 +49,16 @@ public class ProductController {
     }
 
     @GetMapping("/admin/products")
-    public ResponseEntity<List<ProductResponse>> getAdminProducts() {
-        return ResponseEntity.ok(productService.getAdminProducts());
+    public ResponseEntity<List<ProductResponse>> getAdminProducts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String series,
+            @RequestParam(required = false) ProductStatus status,
+            @RequestParam(defaultValue = "false") boolean lowStockOnly
+    ) {
+        return ResponseEntity.ok(productService.getAdminProducts(
+                new AdminProductSearchCondition(keyword, category, series, status, lowStockOnly)
+        ));
     }
 
     @PostMapping("/admin/products")

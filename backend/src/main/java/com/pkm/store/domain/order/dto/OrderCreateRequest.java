@@ -12,6 +12,8 @@ public record OrderCreateRequest(
         @Size(max = 500)
         String address,
 
-        Long deliveryAddressId
+        Long deliveryAddressId,
+
+        Boolean deferDeliveryAddress
 ) {
 }

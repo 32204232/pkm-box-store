@@ -8,16 +8,14 @@ import { Message } from "@/components/Message";
 import { ProductCard } from "@/components/ProductCard";
 import { RequireAuth } from "@/components/RequireAuth";
 import { api, formatPrice } from "@/lib/api";
-import type { Cart, CartItem, DeliveryAddress, Product } from "@/types/api";
+import type { Cart, CartItem, Product } from "@/types/api";
 
 export default function CartPage() {
   const router = useRouter();
   const [cart, setCart] = useState<Cart | null>(null);
-  const [addresses, setAddresses] = useState<DeliveryAddress[]>([]);
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [addressLoading, setAddressLoading] = useState(true);
   const [updatingItemId, setUpdatingItemId] = useState<number | null>(null);
   const [removingItemId, setRemovingItemId] = useState<number | null>(null);
   const [selectedItemIds, setSelectedItemIds] = useState<number[]>([]);
@@ -37,17 +35,6 @@ export default function CartPage() {
     }
   }
 
-  async function loadAddresses() {
-    try {
-      const response = await api.deliveryAddresses();
-      setAddresses(response);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "배송지 조회 실패");
-    } finally {
-      setAddressLoading(false);
-    }
-  }
-
   async function loadRecommendedProducts() {
     try {
       const response = await api.products({ sort: "latest" });
@@ -59,7 +46,6 @@ export default function CartPage() {
 
   useEffect(() => {
     loadCart();
-    loadAddresses();
     loadRecommendedProducts();
   }, []);
 
@@ -154,15 +140,7 @@ export default function CartPage() {
     setCreatingOrder(true);
     setMessage(null);
     try {
-      const checkoutAddress = addresses.find((item) => item.isDefault) ?? addresses[0];
-      if (!checkoutAddress) {
-        setMessage("배송/결제를 진행하려면 먼저 배송지를 등록해 주세요.");
-        setCreatingOrder(false);
-        return;
-      }
-
-      const orderRequest = { deliveryAddressId: checkoutAddress.id };
-      const order = await api.createOrder(orderRequest);
+      const order = await api.createOrder({ deferDeliveryAddress: true });
       router.push(`/orders/${order.id}/payment`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "주문 생성 실패");
@@ -185,7 +163,6 @@ export default function CartPage() {
   const isCartEmpty = !cart || cart.items.length === 0;
   const hasCartItems = Boolean(cart && cart.items.length > 0);
   const allSelected = Boolean(cart?.items.length) && selectedItemIds.length === cart?.items.length;
-  const checkoutAddress = addresses.find((item) => item.isDefault) ?? addresses[0];
   const selectedItems = cart?.items.filter((item) => selectedItemIds.includes(item.id)) ?? [];
   const selectedCount = selectedItems.length;
   const productMetaById = useMemo(() => new Map(recommendedProducts.map((product) => [product.id, product])), [recommendedProducts]);
@@ -215,7 +192,7 @@ export default function CartPage() {
           </>
         ) : (
           <div className="cart-checkout">
-            <div className="cart-layout">
+            <div className="cart-layout cart-layout-single">
               <section className="cart-items-panel">
                 <div className="cart-delivery-count-card">
                   <div>
@@ -296,39 +273,12 @@ export default function CartPage() {
                     );
                   })}
                 </div>
-              </section>
 
-              <aside className="cart-summary">
-                <section className="checkout-section">
+                <section className="checkout-section cart-selected-summary">
                   <div className="cart-summary-header">
                     <div>
-                      <strong>배송 안내</strong>
-                      <p>배송 주소는 배송/결제 화면에서 확인하고 변경할 수 있습니다.</p>
-                    </div>
-                  </div>
-                  {addressLoading ? (
-                    <div className="alert">배송지를 확인하고 있습니다.</div>
-                  ) : checkoutAddress ? (
-                    <div className="selected-address-card">
-                      <div className="selected-address-title">
-                        <strong>{checkoutAddress.label || "주문 생성 배송지"}</strong>
-                        {checkoutAddress.isDefault && <span className="badge">기본 배송지</span>}
-                      </div>
-                      <p>배송/결제 단계에서 주소를 다시 확인해 주세요.</p>
-                    </div>
-                  ) : (
-                    <div className="cart-address-empty">
-                      <strong>저장된 배송지가 없습니다.</strong>
-                      <p>내 배송지에 주소를 등록한 뒤 주문을 생성할 수 있습니다.</p>
-                    </div>
-                  )}
-                </section>
-
-                <section className="checkout-section">
-                  <div className="cart-summary-header">
-                    <div>
-                      <strong>예상 결제금액</strong>
-                      <p>현재 주문 생성은 장바구니 전체 상품 기준입니다.</p>
+                      <strong>선택 주문정보</strong>
+                      <p>배송 주소와 결제 수단은 다음 배송/결제 화면에서 입력합니다.</p>
                     </div>
                   </div>
                   <div className="cart-total-box">
@@ -350,7 +300,7 @@ export default function CartPage() {
                     </div>
                   </div>
                 </section>
-              </aside>
+              </section>
             </div>
 
             <RecommendedProducts products={recommendedProducts} />

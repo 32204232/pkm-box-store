@@ -13,6 +13,7 @@ public class EmailVerificationProperties {
     private int maxFailedAttempts = 5;
     private int maxSendsPerWindow = 5;
     private long sendWindowSeconds = 3600;
+    private int cleanupRetentionDays = 7;
 
     public long getCodeTtlSeconds() {
         return codeTtlSeconds;
@@ -60,5 +61,13 @@ public class EmailVerificationProperties {
 
     public void setSendWindowSeconds(long sendWindowSeconds) {
         this.sendWindowSeconds = sendWindowSeconds;
+    }
+
+    public int getCleanupRetentionDays() {
+        return cleanupRetentionDays;
+    }
+
+    public void setCleanupRetentionDays(int cleanupRetentionDays) {
+        this.cleanupRetentionDays = cleanupRetentionDays;
     }
 }

@@ -17,6 +17,7 @@ import com.pkm.store.domain.inventory.service.InventoryService;
 import com.pkm.store.domain.inventory.type.InventoryHistoryType;
 import com.pkm.store.domain.member.entity.Member;
 import com.pkm.store.domain.member.repository.MemberRepository;
+import com.pkm.store.domain.notification.service.OrderNotificationService;
 import com.pkm.store.domain.order.entity.Order;
 import com.pkm.store.domain.order.entity.OrderItem;
 import com.pkm.store.domain.order.repository.OrderRepository;
@@ -80,6 +81,9 @@ class PaymentServiceTest {
     @Mock
     private AdminAuditLogService adminAuditLogService;
 
+    @Mock
+    private OrderNotificationService orderNotificationService;
+
     private PaymentService paymentService;
     private Member member;
 
@@ -92,7 +96,8 @@ class PaymentServiceTest {
                 memberRepository,
                 paymentClientResolver,
                 inventoryService,
-                adminAuditLogService
+                adminAuditLogService,
+                orderNotificationService
         );
         member = Member.create(MEMBER_EMAIL, "encoded-password", "Test Member");
         SecurityContextHolder.getContext().setAuthentication(

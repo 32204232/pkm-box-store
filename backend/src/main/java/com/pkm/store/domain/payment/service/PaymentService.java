@@ -6,6 +6,7 @@ import com.pkm.store.domain.adminlog.type.AdminAuditTargetType;
 import com.pkm.store.domain.inventory.service.InventoryService;
 import com.pkm.store.domain.member.entity.Member;
 import com.pkm.store.domain.member.repository.MemberRepository;
+import com.pkm.store.domain.notification.service.OrderNotificationService;
 import com.pkm.store.domain.order.entity.Order;
 import com.pkm.store.domain.order.repository.OrderRepository;
 import com.pkm.store.domain.order.type.OrderStatus;
@@ -40,6 +41,7 @@ public class PaymentService {
     private final PaymentClientResolver paymentClientResolver;
     private final InventoryService inventoryService;
     private final AdminAuditLogService adminAuditLogService;
+    private final OrderNotificationService orderNotificationService;
 
     @Transactional
     public PaymentResponse confirmPayment(PaymentConfirmRequest request) {
@@ -79,7 +81,9 @@ public class PaymentService {
                 "PAYMENT_APPROVED"
         ));
 
-        return PaymentResponse.from(paymentRepository.save(payment));
+        Payment savedPayment = paymentRepository.save(payment);
+        orderNotificationService.sendPaymentCompleted(order);
+        return PaymentResponse.from(savedPayment);
     }
 
     @Transactional

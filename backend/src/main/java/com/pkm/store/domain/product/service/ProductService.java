@@ -3,6 +3,7 @@ package com.pkm.store.domain.product.service;
 import com.pkm.store.domain.adminlog.service.AdminAuditLogService;
 import com.pkm.store.domain.adminlog.type.AdminAuditActionType;
 import com.pkm.store.domain.adminlog.type.AdminAuditTargetType;
+import com.pkm.store.domain.product.dto.AdminProductSearchCondition;
 import com.pkm.store.domain.product.dto.ProductCreateRequest;
 import com.pkm.store.domain.product.dto.ProductResponse;
 import com.pkm.store.domain.product.dto.ProductSearchCondition;
@@ -22,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ProductService {
+
+    private static final int LOW_STOCK_THRESHOLD = 5;
 
     private final ProductRepository productRepository;
     private final AdminAuditLogService adminAuditLogService;
@@ -46,7 +49,19 @@ public class ProductService {
     }
 
     public List<ProductResponse> getAdminProducts() {
-        return productRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"))
+        return getAdminProducts(new AdminProductSearchCondition(null, null, null, null, false));
+    }
+
+    public List<ProductResponse> getAdminProducts(AdminProductSearchCondition condition) {
+        return productRepository.searchAdminProducts(
+                        condition.keyword(),
+                        condition.category(),
+                        condition.series(),
+                        condition.status(),
+                        condition.lowStockOnly(),
+                        LOW_STOCK_THRESHOLD,
+                        Sort.by(Sort.Direction.ASC, "stockQuantity").and(Sort.by(Sort.Direction.DESC, "createdAt"))
+                )
                 .stream()
                 .map(ProductResponse::from)
                 .toList();

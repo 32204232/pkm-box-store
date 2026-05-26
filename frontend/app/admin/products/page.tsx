@@ -33,12 +33,26 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [keywordFilter, setKeywordFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [seriesFilter, setSeriesFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [lowStockOnly, setLowStockOnly] = useState(false);
 
   const isEditMode = editingProductId !== null;
 
   async function loadProducts() {
+    setLoading(true);
     try {
-      setProducts(await api.adminProducts());
+      setProducts(
+        await api.adminProducts({
+          keyword: keywordFilter,
+          category: categoryFilter,
+          series: seriesFilter,
+          status: statusFilter ? (statusFilter as ProductStatus) : undefined,
+          lowStockOnly
+        })
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "상품 조회에 실패했습니다.");
     } finally {
@@ -49,6 +63,14 @@ export default function AdminProductsPage() {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  function resetFilters() {
+    setKeywordFilter("");
+    setCategoryFilter("");
+    setSeriesFilter("");
+    setStatusFilter("");
+    setLowStockOnly(false);
+  }
 
   function resetForm() {
     setForm(emptyForm);
@@ -159,6 +181,49 @@ export default function AdminProductsPage() {
           </div>
         </div>
         <Message message={message} />
+        <form
+          className="shop-filter-bar"
+          onSubmit={(event) => {
+            event.preventDefault();
+            loadProducts();
+          }}
+        >
+          <div className="filter-chip-row">
+            <label className="filter-chip">
+              <span>검색어</span>
+              <input value={keywordFilter} onChange={(event) => setKeywordFilter(event.target.value)} placeholder="상품명" />
+            </label>
+            <label className="filter-chip">
+              <span>카테고리</span>
+              <input value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} placeholder="부스터 박스" />
+            </label>
+            <label className="filter-chip">
+              <span>시리즈</span>
+              <input value={seriesFilter} onChange={(event) => setSeriesFilter(event.target.value)} placeholder="스칼렛" />
+            </label>
+            <label className="filter-chip">
+              <span>상태</span>
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+                <option value="">전체</option>
+                {statuses.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="filter-stock-toggle">
+              <input type="checkbox" checked={lowStockOnly} onChange={(event) => setLowStockOnly(event.target.checked)} />
+              재고 부족만
+            </label>
+            <button className="button shop-search-button" type="submit">
+              검색
+            </button>
+            <button className="filter-reset-button" type="button" onClick={resetFilters}>
+              초기화
+            </button>
+          </div>
+        </form>
         <div className="admin-products-layout">
           <form className="card admin-product-form-card" onSubmit={submit}>
             <div className="card-body form admin-product-form">

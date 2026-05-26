@@ -10,7 +10,9 @@ import com.pkm.store.domain.deliveryaddress.repository.DeliveryAddressRepository
 import com.pkm.store.domain.inventory.service.InventoryService;
 import com.pkm.store.domain.member.entity.Member;
 import com.pkm.store.domain.member.repository.MemberRepository;
+import com.pkm.store.domain.notification.service.OrderNotificationService;
 import com.pkm.store.domain.order.dto.AdminOrderResponse;
+import com.pkm.store.domain.order.dto.AdminOrderSearchCondition;
 import com.pkm.store.domain.order.dto.AdminOrderStatusUpdateRequest;
 import com.pkm.store.domain.order.dto.OrderCreateRequest;
 import com.pkm.store.domain.order.dto.OrderDeliveryAddressUpdateRequest;
@@ -43,6 +45,7 @@ public class OrderService {
     private final DeliveryAddressRepository deliveryAddressRepository;
     private final ProductRepository productRepository;
     private final AdminAuditLogService adminAuditLogService;
+    private final OrderNotificationService orderNotificationService;
 
     @Transactional
     public OrderResponse createOrderFromCart(OrderCreateRequest request) {
@@ -63,6 +66,7 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
         cartItemRepository.deleteAllByMember(member);
+        orderNotificationService.sendOrderCreated(savedOrder);
         return OrderResponse.from(savedOrder);
     }
 
@@ -110,7 +114,18 @@ public class OrderService {
     }
 
     public List<AdminOrderResponse> getAdminOrders() {
-        return orderRepository.findAllByOrderByCreatedAtDesc()
+        return getAdminOrders(new AdminOrderSearchCondition(null, null, null, null));
+    }
+
+    public List<AdminOrderResponse> getAdminOrders(AdminOrderSearchCondition condition) {
+        LocalDateTime startAt = condition.startDate() == null ? null : condition.startDate().atStartOfDay();
+        LocalDateTime endAt = condition.endDate() == null ? null : condition.endDate().plusDays(1).atStartOfDay();
+        return orderRepository.searchAdminOrders(
+                        condition.status(),
+                        normalizeKeyword(condition.memberEmail()),
+                        startAt,
+                        endAt
+                )
                 .stream()
                 .map(AdminOrderResponse::from)
                 .toList();
@@ -128,6 +143,7 @@ public class OrderService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
         order.changeDeliveryStatus(request.status(), request.courierCompany(), request.trackingNumber());
         recordDeliveryStatusChange(order, request);
+        sendDeliveryNotification(order, request.status());
         return AdminOrderResponse.from(order);
     }
 
@@ -176,6 +192,9 @@ public class OrderService {
     }
 
     private Order createOrder(Member member, OrderCreateRequest request) {
+        if (Boolean.TRUE.equals(request.deferDeliveryAddress())) {
+            return Order.createPendingDelivery(member);
+        }
         if (request.deliveryAddressId() != null) {
             DeliveryAddress address = deliveryAddressRepository.findByIdAndMember(request.deliveryAddressId(), member)
                     .orElseThrow(() -> new BusinessException(ErrorCode.ADDRESS_NOT_FOUND));
@@ -191,10 +210,17 @@ public class OrderService {
         }
 
         validateManualAddress(request);
+        if (isBlank(request.receiverName()) && isBlank(request.receiverPhone()) && isBlank(request.address())) {
+            return Order.createPendingDelivery(member);
+        }
         return Order.create(member, request.receiverName(), request.receiverPhone(), request.address());
     }
 
     private void validateManualAddress(OrderCreateRequest request) {
+        boolean allBlank = isBlank(request.receiverName()) && isBlank(request.receiverPhone()) && isBlank(request.address());
+        if (allBlank) {
+            return;
+        }
         if (isBlank(request.receiverName()) || isBlank(request.receiverPhone()) || isBlank(request.address())) {
             throw new BusinessException(ErrorCode.INVALID_ADDRESS_REQUEST);
         }
@@ -222,6 +248,13 @@ public class OrderService {
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private String normalizeKeyword(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     private void recordDeliveryStatusChange(Order order, AdminOrderStatusUpdateRequest request) {
@@ -252,6 +285,16 @@ public class OrderService {
                     order.getId(),
                     "주문 배송 완료 처리: " + order.getOrderUid()
             );
+        }
+    }
+
+    private void sendDeliveryNotification(Order order, OrderStatus status) {
+        if (status == OrderStatus.SHIPPED) {
+            orderNotificationService.sendShippingStarted(order);
+            return;
+        }
+        if (status == OrderStatus.DELIVERED) {
+            orderNotificationService.sendDelivered(order);
         }
     }
 

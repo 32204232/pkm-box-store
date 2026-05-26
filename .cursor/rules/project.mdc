@@ -3,19 +3,70 @@
 ## Project Overview
 PKM Box Store is a Pokemon card box shopping mall project.
 
+The goal is to build a real-commerce-like shopping mall with:
+- customer product browsing
+- cart and checkout
+- Toss Payments
+- delivery address management
+- admin product/order operations
+- email verification and password reset
+- KREAM-inspired customer-facing UI
+
 ## Stack
-- Backend: Spring Boot, MySQL, JWT, Toss Payments, AWS S3
-- Frontend: Next.js App Router, TypeScript, CSS in globals.css
-- Do not introduce Tailwind CSS or external UI libraries unless explicitly requested.
+- Backend: Spring Boot, Java 17, MySQL, JPA, JWT, Toss Payments, AWS S3, Flyway
+- Frontend: Next.js App Router, TypeScript, CSS in `frontend/app/globals.css`
+- Styling: plain CSS only. Do not introduce Tailwind CSS or external UI libraries unless explicitly requested.
 
 ## General Rules
-- Do not change backend code when the task is frontend-only.
-- Do not change frontend code when the task is backend-only.
-- Preserve existing API calls, routing, authentication, and state management unless the task explicitly asks to change them.
+- Always inspect existing files before editing.
+- If the user asks for a plan only, do not edit files.
+- If the user asks for analysis or review, inspect and explain before proposing changes.
 - Do not add mock data to replace real API data.
-- Always check existing files before editing.
-- After frontend changes, run `npm run build` from `frontend`.
-- After backend changes, run `.\gradlew.bat test --no-daemon` from `backend`.
+- Preserve existing API calls, routing, authentication, and state management unless the task explicitly asks to change them.
+- Do not change backend code for frontend-only tasks.
+- Do not change frontend code for backend-only tasks.
+- Do not create fake features that look functional but are not actually implemented.
+- If a feature is not supported by the current backend API, explain the limitation before implementing a misleading UI.
+- Keep changes scoped to the current task.
+- Never revert or overwrite unrelated user changes unless explicitly requested.
+- Do not commit real secrets.
+- Never commit `.env`, real API keys, DB passwords, Toss secret keys, AWS keys, SMTP passwords, private keys, or service account files.
+
+## Verification Rules
+- After frontend changes, run:
+  - `cd frontend`
+  - `npm run build`
+- After backend changes, run:
+  - `cd backend`
+  - `.\gradlew.bat test --no-daemon`
+- After full-stack changes, run both backend tests and frontend build.
+- If tests fail, do not call the task complete. Explain the failure and fix it first.
+- If verification fails because of missing local services, credentials, or environment setup, report the exact blocker.
+- Do not weaken production code only to satisfy tests.
+- Before committing, run:
+  - `git status`
+  - `git diff --stat`
+- If unrelated files are changed, do not commit them without asking.
+
+## Git Rules
+- Prefer small, meaningful commits.
+- Use commit messages like:
+  - `feat: ...`
+  - `fix: ...`
+  - `style: ...`
+  - `docs: ...`
+  - `chore: ...`
+- Before commit/push:
+  - check `git status`
+  - check `git diff --stat`
+  - confirm no secret files are included
+  - confirm build/tests passed
+- If the working tree already has unrelated changes, stage and commit only files related to the current task.
+- Never revert or overwrite unrelated user changes unless explicitly requested.
+- After push, report:
+  - commit message
+  - commit hash
+  - final `git status`
 
 ## Frontend Rules
 - Use existing `frontend/lib/api.ts`.
@@ -23,16 +74,104 @@ PKM Box Store is a Pokemon card box shopping mall project.
 - Use existing `RequireAuth`.
 - Prefer editing `frontend/app/globals.css` for styling.
 - Keep mobile responsiveness.
-- Do not remove existing user flows:
+- Do not break existing user flows:
   - product list
   - product detail
   - cart
   - direct purchase
   - order/payment
+  - address management
+  - email verification signup
+  - password reset
   - admin pages
+
+## KREAM-Inspired Design Rules
+- KREAM is the main visual reference for customer-facing pages.
+- Follow KREAM’s structure and design language:
+  - white background
+  - black/gray typography
+  - thin borders
+  - wide spacing
+  - image-centered product cards
+  - minimal shadows
+  - line-style inputs
+  - sticky/fixed checkout CTA when appropriate
+- Do not copy KREAM logos, exact text, brand assets, or unsupported service claims.
+- Avoid generic AI/SaaS card UI.
+- Avoid unnecessary rounded cards, heavy shadows, large panels, and fake dashboard blocks.
+- Prefer:
+  - clean line-based layout
+  - narrow centered auth forms
+  - left menu + right content for mypage
+  - mypage information rows with small `변경`/`수정` buttons and modal editing
+  - full-screen search overlay
+  - slide-in hamburger drawer
+  - product detail with left content and right sticky purchase panel
+- Do not add fake UI for unavailable features such as:
+  - KREAM Pay
+  - bidding
+  - transaction charts
+  - fast delivery guarantee
+  - product authentication guarantee
+  - points/coupons unless actually implemented
 
 ## Backend Rules
 - Follow existing domain package structure.
-- Use existing BusinessException and ErrorCode.
+- Use existing `BusinessException` and `ErrorCode`.
 - Keep existing security rules.
-- Do not commit real secrets.
+- Use DTOs for requests/responses.
+- Do not weaken validation just to make tests pass.
+- For new tables or columns, add Flyway migration SQL.
+- Keep `JPA_DDL_AUTO=validate` as the default safe flow.
+- Do not rely on `JPA_DDL_AUTO=update` except for temporary local debugging.
+
+## Database and Flyway Rules
+- Use Flyway for schema changes.
+- Add migration files under:
+  - `backend/src/main/resources/db/migration`
+- Migration file naming:
+  - `V2__meaningful_description.sql`
+  - `V3__meaningful_description.sql`
+- Do not write destructive SQL unless explicitly requested.
+- Avoid `DROP TABLE`, `TRUNCATE`, or data deletion in migrations unless explicitly approved.
+- For existing local DB compatibility, use safe SQL when appropriate.
+- Keep Flyway enabled for runtime/local `bootRun` unless explicitly disabled.
+- For H2-based tests, disable Flyway or provide H2-compatible test configuration instead of changing production migrations to fit H2.
+- After adding migration, run backend tests.
+
+## Email/Auth Rules
+- Email verification codes and verification tokens must not be stored in plain text.
+- Use purpose-based verification:
+  - `SIGNUP`
+  - `PASSWORD_RESET`
+- Do not implement email finding unless there is reliable member identity data.
+- In local development, `MAIL_MODE=LOG` is allowed.
+- In production, SMTP secrets must come from environment variables.
+- Email notification failures must not break order/payment transactions unless explicitly required.
+
+## Payment/Order Rules
+- Do not change Toss payment approval/cancel flow unless explicitly requested.
+- Preserve order status transitions.
+- Preserve inventory reservation/confirmation/release logic.
+- Payment and delivery address changes must be consistent with backend state.
+- Do not make UI show a changed delivery address unless the backend order snapshot is actually updated.
+- Payment-related flows must be tested carefully.
+
+## Admin Rules
+- Admin APIs must remain protected.
+- Admin actions that mutate important data should be audit logged when appropriate.
+- Admin UI should prioritize operational clarity, not KREAM customer styling.
+- Use tables, filters, clear status badges, and cautious destructive actions.
+
+## Documentation Rules
+- Update `docs/api-spec.md` when APIs change.
+- Update `docs/local-test-checklist.md` when setup steps or user flows change.
+- Update `docs/project-status.md` only for meaningful feature/status changes.
+- Update `.env.example` when new environment variables are added.
+- Do not document real secrets.
+
+## When Unsure
+- First explain the tradeoff.
+- Ask before making large architecture changes.
+- For UI work, make one page or one component at a time.
+- For backend work, keep the change small and test-covered.

@@ -59,6 +59,8 @@ email:
     max-failed-attempts: ${EMAIL_VERIFICATION_MAX_FAILED_ATTEMPTS:5}
     max-sends-per-window: ${EMAIL_VERIFICATION_MAX_SENDS_PER_WINDOW:5}
     send-window-seconds: ${EMAIL_VERIFICATION_SEND_WINDOW_SECONDS:3600}
+    cleanup-retention-days: ${EMAIL_VERIFICATION_CLEANUP_RETENTION_DAYS:7}
+    cleanup-cron: ${EMAIL_VERIFICATION_CLEANUP_CRON:0 20 3 * * *}
 
 toss:
   payments:
