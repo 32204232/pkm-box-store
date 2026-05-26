@@ -21,6 +21,7 @@ import com.pkm.store.domain.inventory.service.InventoryService;
 import com.pkm.store.domain.inventory.type.InventoryHistoryType;
 import com.pkm.store.domain.member.entity.Member;
 import com.pkm.store.domain.member.repository.MemberRepository;
+import com.pkm.store.domain.notification.service.OrderNotificationService;
 import com.pkm.store.domain.order.dto.AdminOrderResponse;
 import com.pkm.store.domain.order.dto.AdminOrderStatusUpdateRequest;
 import com.pkm.store.domain.order.dto.OrderCreateRequest;
@@ -77,6 +78,9 @@ class OrderServiceTest {
     @Mock
     private AdminAuditLogService adminAuditLogService;
 
+    @Mock
+    private OrderNotificationService orderNotificationService;
+
     private OrderService orderService;
     private Member member;
 
@@ -90,7 +94,8 @@ class OrderServiceTest {
                 inventoryService,
                 deliveryAddressRepository,
                 productRepository,
-                adminAuditLogService
+                adminAuditLogService,
+                orderNotificationService
         );
         member = Member.create(MEMBER_EMAIL, "encoded-password", "Test Member");
         SecurityContextHolder.getContext().setAuthentication(
@@ -167,6 +172,22 @@ class OrderServiceTest {
         assertThat(response.zipCode()).isEqualTo("12345");
         assertThat(response.address1()).isEqualTo("Seoul Address 1");
         assertThat(response.address2()).isEqualTo("Address 2");
+    }
+
+    @Test
+    void createOrderFromCartSucceedsWhenDeliveryAddressIsDeferred() {
+        Product product = createProduct(ProductStatus.ON_SALE, 10);
+        CartItem cartItem = CartItem.create(member, product, 1);
+        givenCurrentMember();
+        given(cartItemRepository.findAllByMemberOrderByCreatedAtDesc(member)).willReturn(List.of(cartItem));
+        givenLockedProduct(product);
+        given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        OrderResponse response = orderService.createOrderFromCart(createDeferredAddressRequest());
+
+        assertThat(response.status()).isEqualTo(OrderStatus.PAYMENT_PENDING);
+        assertThat(response.zipCode()).isNull();
+        assertThat(response.address1()).isNull();
     }
 
     @Test
@@ -514,7 +535,7 @@ class OrderServiceTest {
     @Test
     void getAdminOrdersSucceeds() {
         Order order = createOrder(OrderStatus.PAID);
-        given(orderRepository.findAllByOrderByCreatedAtDesc()).willReturn(List.of(order));
+        given(orderRepository.searchAdminOrders(null, null, null, null)).willReturn(List.of(order));
 
         List<AdminOrderResponse> responses = orderService.getAdminOrders();
 
@@ -699,11 +720,15 @@ class OrderServiceTest {
     }
 
     private OrderCreateRequest createRequest() {
-        return new OrderCreateRequest("Test Member", "010-1234-5678", "Seoul", null);
+        return new OrderCreateRequest("Test Member", "010-1234-5678", "Seoul", null, false);
     }
 
     private OrderCreateRequest createAddressRequest(Long deliveryAddressId) {
-        return new OrderCreateRequest(null, null, null, deliveryAddressId);
+        return new OrderCreateRequest(null, null, null, deliveryAddressId, false);
+    }
+
+    private OrderCreateRequest createDeferredAddressRequest() {
+        return new OrderCreateRequest(null, null, null, null, true);
     }
 
     private OrderDeliveryAddressUpdateRequest createDeliveryAddressUpdateRequest(Long deliveryAddressId) {

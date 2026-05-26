@@ -88,7 +88,7 @@ export function PaymentFailContent() {
               )}
 
               <div className="payment-result-actions">
-                <Link className="button primary payment-result-primary" href="/orders">
+                <Link className="button primary payment-result-primary" href="/mypage/orders">
                   주문 목록으로 이동
                 </Link>
                 <Link className="button" href="/">

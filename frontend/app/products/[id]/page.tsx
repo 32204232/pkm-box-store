@@ -86,19 +86,20 @@ export default function ProductDetailPage() {
     }
 
     let ignore = false;
+    const currentProduct = product;
 
     async function loadRelatedProducts() {
       setRelatedLoading(true);
       try {
-        const seriesProducts = await api.products({ series: product.series, sort: "latest" });
-        let candidates = seriesProducts.filter((item) => item.id !== product.id);
+        const seriesProducts = await api.products({ series: currentProduct.series, sort: "latest" });
+        let candidates = seriesProducts.filter((item) => item.id !== currentProduct.id);
 
         if (candidates.length < 6) {
-          const categoryProducts = await api.products({ category: product.category, sort: "latest" });
+          const categoryProducts = await api.products({ category: currentProduct.category, sort: "latest" });
           const seenIds = new Set(candidates.map((item) => item.id));
           candidates = [
             ...candidates,
-            ...categoryProducts.filter((item) => item.id !== product.id && !seenIds.has(item.id))
+            ...categoryProducts.filter((item) => item.id !== currentProduct.id && !seenIds.has(item.id))
           ];
         }
 

@@ -34,6 +34,8 @@ export interface MemberResponse {
   id: number;
   email: string;
   name: string;
+  profileImageUrl: string | null;
+  bio: string | null;
   role: MemberRole;
   createdAt: string;
   updatedAt: string;
@@ -75,6 +77,17 @@ export interface PasswordResetRequest {
   newPassword: string;
 }
 
+export interface MemberProfileUpdateRequest {
+  name: string;
+  profileImageUrl?: string | null;
+  bio?: string | null;
+}
+
+export interface PasswordChangeRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export interface Product {
   id: number;
   name: string;
@@ -111,6 +124,14 @@ export interface ProductSearchParams {
   status?: Exclude<ProductStatus, "HIDDEN">;
   inStockOnly?: boolean;
   sort?: ProductSort;
+}
+
+export interface AdminProductSearchParams {
+  keyword?: string;
+  category?: string;
+  series?: string;
+  status?: ProductStatus;
+  lowStockOnly?: boolean;
 }
 
 export interface CartItem {
@@ -152,6 +173,7 @@ export interface DeliveryAddressRequest {
   zipCode: string;
   address1: string;
   address2?: string | null;
+  isDefault?: boolean | null;
 }
 
 export interface OrderDeliveryAddressUpdateRequest {
@@ -161,6 +183,13 @@ export interface OrderDeliveryAddressUpdateRequest {
   zipCode?: string;
   address1?: string;
   address2?: string | null;
+}
+
+export interface AdminOrderSearchParams {
+  status?: OrderStatus;
+  memberEmail?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface OrderItem {
@@ -183,6 +212,10 @@ export interface Order {
   zipCode: string | null;
   address1: string | null;
   address2: string | null;
+  courierCompany: string | null;
+  trackingNumber: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
   expiresAt: string;
   items: OrderItem[];
   createdAt: string;

@@ -2,8 +2,10 @@ package com.pkm.store.domain.member.service;
 
 import com.pkm.store.domain.member.dto.MemberLoginRequest;
 import com.pkm.store.domain.member.dto.MemberLoginResponse;
+import com.pkm.store.domain.member.dto.MemberProfileUpdateRequest;
 import com.pkm.store.domain.member.dto.MemberResponse;
 import com.pkm.store.domain.member.dto.MemberSignupRequest;
+import com.pkm.store.domain.member.dto.PasswordChangeRequest;
 import com.pkm.store.domain.member.dto.PasswordResetRequest;
 import com.pkm.store.domain.member.entity.Member;
 import com.pkm.store.domain.member.repository.MemberRepository;
@@ -13,6 +15,8 @@ import com.pkm.store.global.exception.ErrorCode;
 import com.pkm.store.global.jwt.JwtTokenProvider;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,6 +64,30 @@ public class MemberService {
         return new MemberLoginResponse(jwtTokenProvider.createAccessToken(member.getEmail(), member.getRole()));
     }
 
+    public MemberResponse getMe() {
+        return MemberResponse.from(getCurrentMember());
+    }
+
+    @Transactional
+    public MemberResponse updateMyProfile(MemberProfileUpdateRequest request) {
+        Member member = getCurrentMember();
+        member.updateProfile(
+                request.name().trim(),
+                normalizeNullableText(request.profileImageUrl()),
+                normalizeNullableText(request.bio())
+        );
+        return MemberResponse.from(member);
+    }
+
+    @Transactional
+    public void changeMyPassword(PasswordChangeRequest request) {
+        Member member = getCurrentMember();
+        if (!passwordEncoder.matches(request.currentPassword(), member.getPassword())) {
+            throw new BusinessException(ErrorCode.INVALID_PASSWORD);
+        }
+        member.changePassword(passwordEncoder.encode(request.newPassword()));
+    }
+
     @Transactional
     public void resetPassword(PasswordResetRequest request) {
         String email = normalizeEmail(request.email());
@@ -76,5 +104,22 @@ public class MemberService {
 
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizeNullableText(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private Member getCurrentMember() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new BusinessException(ErrorCode.MEMBER_NOT_FOUND);
+        }
+
+        return memberRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
     }
 }

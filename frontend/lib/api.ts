@@ -3,6 +3,8 @@ import type {
   AdminAuditLogResponse,
   AdminDashboardResponse,
   AdminOrder,
+  AdminOrderSearchParams,
+  AdminProductSearchParams,
   Cart,
   CartItem,
   DeliveryAddress,
@@ -13,9 +15,11 @@ import type {
   EmailVerificationVerifyResponse,
   LoginResponse,
   MemberResponse,
+  MemberProfileUpdateRequest,
   Order,
   OrderDeliveryAddressUpdateRequest,
   OrderStatus,
+  PasswordChangeRequest,
   PasswordResetRequest,
   PaymentConfirmRequest,
   PaymentResponse,
@@ -148,6 +152,18 @@ export const api = {
     return request<void>("/api/members/password-reset", { method: "POST", body, auth: false });
   },
 
+  me() {
+    return request<MemberResponse>("/api/members/me");
+  },
+
+  updateMyProfile(body: MemberProfileUpdateRequest) {
+    return request<MemberResponse>("/api/members/me/profile", { method: "PATCH", body });
+  },
+
+  changeMyPassword(body: PasswordChangeRequest) {
+    return request<void>("/api/members/me/password", { method: "PATCH", body });
+  },
+
   products(params: ProductSearchParams = {}) {
     const searchParams = new URLSearchParams();
 
@@ -178,8 +194,25 @@ export const api = {
     return request<Product>(`/api/products/${id}`, { auth: false });
   },
 
-  adminProducts() {
-    return request<Product[]>("/api/admin/products");
+  adminProducts(params: AdminProductSearchParams = {}) {
+    const searchParams = new URLSearchParams();
+    if (params.keyword?.trim()) {
+      searchParams.set("keyword", params.keyword.trim());
+    }
+    if (params.category?.trim()) {
+      searchParams.set("category", params.category.trim());
+    }
+    if (params.series?.trim()) {
+      searchParams.set("series", params.series.trim());
+    }
+    if (params.status) {
+      searchParams.set("status", params.status);
+    }
+    if (params.lowStockOnly) {
+      searchParams.set("lowStockOnly", "true");
+    }
+    const query = searchParams.toString();
+    return request<Product[]>(`/api/admin/products${query ? `?${query}` : ""}`);
   },
 
   createProduct(body: ProductCreateRequest) {
@@ -240,7 +273,13 @@ export const api = {
     return request<DeliveryAddress>(`/api/me/addresses/${addressId}/default`, { method: "PATCH" });
   },
 
-  createOrder(body: { receiverName?: string; receiverPhone?: string; address?: string; deliveryAddressId?: number }) {
+  createOrder(body: {
+    receiverName?: string;
+    receiverPhone?: string;
+    address?: string;
+    deliveryAddressId?: number;
+    deferDeliveryAddress?: boolean;
+  }) {
     return request<Order>("/api/orders", { method: "POST", body });
   },
 
@@ -264,8 +303,22 @@ export const api = {
     return request<void>("/api/payments/fail", { method: "POST", body: { orderId } });
   },
 
-  adminOrders() {
-    return request<AdminOrder[]>("/api/admin/orders");
+  adminOrders(params: AdminOrderSearchParams = {}) {
+    const searchParams = new URLSearchParams();
+    if (params.status) {
+      searchParams.set("status", params.status);
+    }
+    if (params.memberEmail?.trim()) {
+      searchParams.set("memberEmail", params.memberEmail.trim());
+    }
+    if (params.startDate) {
+      searchParams.set("startDate", params.startDate);
+    }
+    if (params.endDate) {
+      searchParams.set("endDate", params.endDate);
+    }
+    const query = searchParams.toString();
+    return request<AdminOrder[]>(`/api/admin/orders${query ? `?${query}` : ""}`);
   },
 
   adminOrder(orderId: number) {

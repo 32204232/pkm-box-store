@@ -198,7 +198,7 @@ export function Header() {
         <button type="button" disabled>
           고객센터 준비중
         </button>
-        {loggedIn ? <Link href="/orders">마이페이지</Link> : <button type="button" disabled>마이페이지</button>}
+        {loggedIn ? <Link href="/mypage">마이페이지</Link> : <button type="button" disabled>마이페이지</button>}
         <button type="button" disabled>
           관심 준비중
         </button>

@@ -279,6 +279,11 @@ export default function OrderPaymentPage() {
       return;
     }
 
+    if (!hasDeliveryAddress) {
+      setMessage("배송지를 먼저 입력해 주세요.");
+      return;
+    }
+
     if (!TOSS_ORDER_ID_PATTERN.test(order.orderUid)) {
       setMessage("Toss Payments 주문번호 형식이 올바르지 않습니다.");
       return;
@@ -328,7 +333,7 @@ export default function OrderPaymentPage() {
     setMessage(null);
     try {
       await api.failPayment(order.id);
-      router.push("/orders");
+      router.push("/mypage/orders");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "결제 취소에 실패했습니다.");
       setCanceling(false);
@@ -336,7 +341,8 @@ export default function OrderPaymentPage() {
   }
 
   const canChangeDeliveryAddress = order?.status === "PAYMENT_PENDING" && !paying && !canceling && !changingAddress;
-  const canPay = order?.status === "PAYMENT_PENDING" && !paying && !canceling && !changingAddress;
+  const hasDeliveryAddress = Boolean(order?.zipCode && order.address1 && order.receiverName && order.receiverPhone);
+  const canPay = order?.status === "PAYMENT_PENDING" && hasDeliveryAddress && !paying && !canceling && !changingAddress;
   const productMetaById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
 
   return (
@@ -374,22 +380,31 @@ export default function OrderPaymentPage() {
                 </button>
               </div>
               <div className="payment-info-list">
-                <div>
-                  <span>받는 분</span>
-                  <strong>{order.receiverName}</strong>
-                </div>
-                <div>
-                  <span>연락처</span>
-                  <strong>{order.receiverPhone}</strong>
-                </div>
-                <div>
-                  <span>주소</span>
-                  <strong>{order.address}</strong>
-                </div>
-                <div>
-                  <span>배송 요청사항</span>
-                  <strong>요청사항 없음</strong>
-                </div>
+                {hasDeliveryAddress ? (
+                  <>
+                    <div>
+                      <span>받는 분</span>
+                      <strong>{order.receiverName}</strong>
+                    </div>
+                    <div>
+                      <span>연락처</span>
+                      <strong>{order.receiverPhone}</strong>
+                    </div>
+                    <div>
+                      <span>주소</span>
+                      <strong>{order.address}</strong>
+                    </div>
+                    <div>
+                      <span>배송 요청사항</span>
+                      <strong>요청사항 없음</strong>
+                    </div>
+                  </>
+                ) : (
+                  <div className="payment-address-empty">
+                    <span>배송 주소</span>
+                    <strong>배송지를 입력해야 결제를 진행할 수 있습니다.</strong>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -601,7 +616,7 @@ export default function OrderPaymentPage() {
                 </button>
               )}
               <button className="button primary checkout-bottom-button payment-primary-button" type="button" onClick={startPayment} disabled={!canPay}>
-                {paying ? "결제 준비 중..." : `${formatPrice(order.totalPrice)} · 결제하기`}
+                {paying ? "결제 준비 중..." : hasDeliveryAddress ? `${formatPrice(order.totalPrice)} · 결제하기` : "배송지를 입력해 주세요"}
               </button>
             </div>
           </div>

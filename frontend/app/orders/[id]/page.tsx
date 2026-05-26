@@ -9,13 +9,6 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { api, formatDateTime, formatPrice } from "@/lib/api";
 import type { Order } from "@/types/api";
 
-type OrderDeliveryTracking = Order & {
-  courierCompany?: string | null;
-  trackingNumber?: string | null;
-  shippedAt?: string | null;
-  deliveredAt?: string | null;
-};
-
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
   const orderId = useMemo(() => Number(params.id), [params.id]);
@@ -47,7 +40,7 @@ export default function OrderDetailPage() {
             <h1>주문 상세</h1>
             <p>주문 상품과 배송 정보를 확인할 수 있습니다.</p>
           </div>
-          <Link className="button" href="/orders">
+          <Link className="button" href="/mypage/orders">
             주문 목록
           </Link>
         </div>
@@ -67,12 +60,11 @@ export default function OrderDetailPage() {
 }
 
 function OrderDetailContent({ order }: { order: Order }) {
-  const tracking = order as OrderDeliveryTracking;
   const hasTrackingInfo =
-    Boolean(tracking.courierCompany) ||
-    Boolean(tracking.trackingNumber) ||
-    Boolean(tracking.shippedAt) ||
-    Boolean(tracking.deliveredAt);
+    Boolean(order.courierCompany) ||
+    Boolean(order.trackingNumber) ||
+    Boolean(order.shippedAt) ||
+    Boolean(order.deliveredAt);
   const isDelivered = order.status === "DELIVERED";
   const isShipped = order.status === "SHIPPED";
 
@@ -192,28 +184,28 @@ function OrderDetailContent({ order }: { order: Order }) {
                 </div>
               </div>
               <div className="order-tracking-card">
-                {tracking.courierCompany && (
+                {order.courierCompany && (
                   <div>
                     <span className="muted">택배사</span>
-                    <strong>{tracking.courierCompany}</strong>
+                    <strong>{order.courierCompany}</strong>
                   </div>
                 )}
-                {tracking.trackingNumber && (
+                {order.trackingNumber && (
                   <div>
                     <span className="muted">운송장 번호</span>
-                    <strong>{tracking.trackingNumber}</strong>
+                    <strong>{order.trackingNumber}</strong>
                   </div>
                 )}
-                {tracking.shippedAt && (
+                {order.shippedAt && (
                   <div>
                     <span className="muted">발송 시간</span>
-                    <strong>{formatDateTime(tracking.shippedAt)}</strong>
+                    <strong>{formatDateTime(order.shippedAt)}</strong>
                   </div>
                 )}
-                {tracking.deliveredAt && (
+                {order.deliveredAt && (
                   <div>
                     <span className="muted">배송 완료 시간</span>
-                    <strong>{formatDateTime(tracking.deliveredAt)}</strong>
+                    <strong>{formatDateTime(order.deliveredAt)}</strong>
                   </div>
                 )}
                 {!hasTrackingInfo && <strong>{isDelivered ? "배송 완료" : "배송 중"}</strong>}

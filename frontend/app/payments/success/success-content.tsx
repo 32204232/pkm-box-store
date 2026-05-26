@@ -123,7 +123,7 @@ export function PaymentSuccessContent() {
                 <Link className="button primary payment-result-primary" href={`/orders/${payment.orderId}`}>
                   주문 상세 보기
                 </Link>
-                <Link className="button" href="/orders">
+                <Link className="button" href="/mypage/orders">
                   주문 목록으로 이동
                 </Link>
               </div>
@@ -135,7 +135,7 @@ export function PaymentSuccessContent() {
               <h2>결제 승인 결과를 확인하지 못했습니다.</h2>
               <p>주문 목록에서 주문 상태를 확인해 주세요.</p>
               <div className="payment-result-actions">
-                <Link className="button primary payment-result-primary" href="/orders">
+                <Link className="button primary payment-result-primary" href="/mypage/orders">
                   주문 목록으로 이동
                 </Link>
               </div>

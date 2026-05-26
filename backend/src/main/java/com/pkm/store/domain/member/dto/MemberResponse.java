@@ -8,6 +8,8 @@ public record MemberResponse(
         Long id,
         String email,
         String name,
+        String profileImageUrl,
+        String bio,
         MemberRole role,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
@@ -18,6 +20,8 @@ public record MemberResponse(
                 member.getId(),
                 member.getEmail(),
                 member.getName(),
+                member.getProfileImageUrl(),
+                member.getBio(),
                 member.getRole(),
                 member.getCreatedAt(),
                 member.getUpdatedAt()

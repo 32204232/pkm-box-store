@@ -35,6 +35,12 @@ public class Member {
     @Column(nullable = false, length = 100)
     private String name;
 
+    @Column(length = 500)
+    private String profileImageUrl;
+
+    @Column(length = 300)
+    private String bio;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private MemberRole role;
@@ -58,6 +64,12 @@ public class Member {
 
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
+    }
+
+    public void updateProfile(String name, String profileImageUrl, String bio) {
+        this.name = name;
+        this.profileImageUrl = profileImageUrl;
+        this.bio = bio;
     }
 
     @PrePersist

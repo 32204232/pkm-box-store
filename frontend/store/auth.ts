@@ -57,6 +57,11 @@ export function getCurrentRole() {
   return null;
 }
 
+export function getCurrentEmail() {
+  const subject = getTokenPayload()?.sub;
+  return typeof subject === "string" ? subject : null;
+}
+
 export function onAuthChanged(listener: () => void) {
   window.addEventListener(AUTH_CHANGED_EVENT, listener);
   window.addEventListener("storage", listener);

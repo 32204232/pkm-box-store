@@ -165,15 +165,16 @@ class ProductServiceTest {
     void getAdminProductsIncludesHiddenProducts() {
         Product visibleProduct = createProduct("판매 상품", ProductStatus.ON_SALE);
         Product hiddenProduct = createProduct("숨김 상품", ProductStatus.HIDDEN);
-        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
-        given(productRepository.findAll(sort)).willReturn(List.of(hiddenProduct, visibleProduct));
+        Sort sort = Sort.by(Sort.Direction.ASC, "stockQuantity").and(Sort.by(Sort.Direction.DESC, "createdAt"));
+        given(productRepository.searchAdminProducts(null, null, null, null, false, 5, sort))
+                .willReturn(List.of(hiddenProduct, visibleProduct));
 
         List<ProductResponse> responses = productService.getAdminProducts();
 
         assertThat(responses).hasSize(2);
         assertThat(responses).extracting(ProductResponse::status)
                 .containsExactly(ProductStatus.HIDDEN, ProductStatus.ON_SALE);
-        verify(productRepository).findAll(sort);
+        verify(productRepository).searchAdminProducts(null, null, null, null, false, 5, sort);
     }
 
     @Test

@@ -6,14 +6,18 @@ import com.pkm.store.domain.member.dto.EmailVerificationVerifyRequest;
 import com.pkm.store.domain.member.dto.EmailVerificationVerifyResponse;
 import com.pkm.store.domain.member.dto.MemberLoginRequest;
 import com.pkm.store.domain.member.dto.MemberLoginResponse;
+import com.pkm.store.domain.member.dto.MemberProfileUpdateRequest;
 import com.pkm.store.domain.member.dto.MemberResponse;
 import com.pkm.store.domain.member.dto.MemberSignupRequest;
+import com.pkm.store.domain.member.dto.PasswordChangeRequest;
 import com.pkm.store.domain.member.dto.PasswordResetRequest;
 import com.pkm.store.domain.member.service.EmailVerificationService;
 import com.pkm.store.domain.member.service.MemberService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -49,6 +53,24 @@ public class MemberController {
     @PostMapping("/login")
     public ResponseEntity<MemberLoginResponse> login(@Valid @RequestBody MemberLoginRequest request) {
         return ResponseEntity.ok(memberService.login(request));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<MemberResponse> getMe() {
+        return ResponseEntity.ok(memberService.getMe());
+    }
+
+    @PatchMapping("/me/profile")
+    public ResponseEntity<MemberResponse> updateMyProfile(
+            @Valid @RequestBody MemberProfileUpdateRequest request
+    ) {
+        return ResponseEntity.ok(memberService.updateMyProfile(request));
+    }
+
+    @PatchMapping("/me/password")
+    public ResponseEntity<Void> changeMyPassword(@Valid @RequestBody PasswordChangeRequest request) {
+        memberService.changeMyPassword(request);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/password-reset")

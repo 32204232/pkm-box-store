@@ -39,6 +39,8 @@ Response:
   "id": 1,
   "email": "member@example.com",
   "name": "홍길동",
+  "profileImageUrl": null,
+  "bio": null,
   "role": "ROLE_MEMBER",
   "createdAt": "2026-05-21T09:00:00",
   "updatedAt": "2026-05-21T09:00:00"
@@ -181,6 +183,82 @@ Response: `204 No Content`
 - `EMAIL_VERIFICATION_TOKEN_USED`
 - `INVALID_REQUEST`
 
+### 내 회원 정보 조회
+
+- Method: `GET`
+- URL: `/api/members/me`
+- 인증: 회원 필요
+
+Request: 없음
+
+Response:
+
+```json
+{
+  "id": 1,
+  "email": "member@example.com",
+  "name": "홍길동",
+  "profileImageUrl": "https://example.com/profile.jpg",
+  "bio": "포켓몬 카드 박스 수집가",
+  "role": "ROLE_MEMBER",
+  "createdAt": "2026-05-21T09:00:00",
+  "updatedAt": "2026-05-21T09:00:00"
+}
+```
+
+주요 예외:
+
+- `MEMBER_NOT_FOUND`
+- `401 Unauthorized`
+
+### 내 프로필 수정
+
+- Method: `PATCH`
+- URL: `/api/members/me/profile`
+- 인증: 회원 필요
+
+Request:
+
+```json
+{
+  "name": "홍길동",
+  "profileImageUrl": "https://example.com/profile.jpg",
+  "bio": "포켓몬 카드 박스 수집가"
+}
+```
+
+Response: 내 회원 정보 조회 응답과 동일한 객체 구조
+
+주요 예외:
+
+- `MEMBER_NOT_FOUND`
+- `INVALID_REQUEST`
+- `401 Unauthorized`
+
+### 로그인 상태 비밀번호 변경
+
+- Method: `PATCH`
+- URL: `/api/members/me/password`
+- 인증: 회원 필요
+
+Request:
+
+```json
+{
+  "currentPassword": "password123",
+  "newPassword": "newPassword123"
+}
+```
+
+Response: `204 No Content`
+
+주요 예외:
+
+- `MEMBER_NOT_FOUND`
+- `INVALID_PASSWORD`
+- `INVALID_REQUEST`
+- `401 Unauthorized`
+
 ## 2. 상품 API
 
 ### 상품 목록 조회
@@ -268,9 +346,17 @@ Response:
 - URL: `/api/admin/products`
 - 인증: 관리자 필요
 
+Query Parameters:
+
+- `keyword`: 상품명 또는 설명 검색어
+- `category`: 카테고리 필터
+- `series`: 시리즈 필터
+- `status`: 상품 상태 필터. `HIDDEN` 포함 가능
+- `lowStockOnly`: `true`이면 재고 부족 상품만 조회
+
 Request: 없음
 
-`HIDDEN` 상품을 포함해 모든 상품을 최신순으로 조회한다. 관리자 상품 관리 화면에서 숨김 상품을 다시 확인하고 수정할 때 사용한다.
+`HIDDEN` 상품을 포함해 조회한다. 관리자 상품 관리 화면에서 숨김 상품을 다시 확인하고 수정할 때 사용한다.
 
 Response:
 
@@ -754,11 +840,13 @@ Request:
   "receiverName": "홍길동",
   "receiverPhone": "010-1234-5678",
   "address": "서울시 강남구",
-  "deliveryAddressId": null
+  "deliveryAddressId": null,
+  "deferDeliveryAddress": false
 }
 ```
 
 `deliveryAddressId`는 선택 필드이다. 값이 있으면 저장된 배송지를 사용하고, 없으면 `receiverName`, `receiverPhone`, `address`를 직접 입력 배송지로 사용한다.
+장바구니에서 바로 배송/결제 단계로 이동할 때는 `deferDeliveryAddress: true`를 보내 배송지 입력을 배송/결제 화면으로 미룰 수 있다.
 
 Response:
 
@@ -774,6 +862,10 @@ Response:
   "zipCode": "06123",
   "address1": "서울시 강남구 테헤란로 1",
   "address2": "101동 1001호",
+  "courierCompany": null,
+  "trackingNumber": null,
+  "shippedAt": null,
+  "deliveredAt": null,
   "expiresAt": "2026-05-21T09:30:00",
   "items": [
     {
@@ -1198,6 +1290,13 @@ Response:
 - Method: `GET`
 - URL: `/api/admin/orders`
 - 인증: 관리자 필요
+
+Query Parameters:
+
+- `status`: 주문 상태 필터
+- `memberEmail`: 회원 이메일 부분 검색
+- `startDate`: 주문 생성일 시작일, `yyyy-MM-dd`
+- `endDate`: 주문 생성일 종료일, `yyyy-MM-dd`
 
 Request: 없음
 
