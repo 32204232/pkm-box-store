@@ -120,8 +120,30 @@ npm run dev
 - [ ] 백엔드 로그의 `[EMAIL_VERIFICATION] purpose=PASSWORD_RESET` 항목에서 인증번호를 확인한다.
 - [ ] 인증번호 확인 후 새 비밀번호로 재설정한다.
 - [ ] 기존 비밀번호로 로그인이 실패하고 새 비밀번호로 로그인이 성공하는지 확인한다.
+- [ ] 주문 생성, 결제 완료, 배송 시작, 배송 완료 시 `MAIL_MODE=LOG`에서 `[CUSTOMER_EMAIL]` 로그가 남는지 확인한다.
 
-## 4. 상품/장바구니/주문 흐름
+## 4. 마이페이지 흐름
+
+- [ ] Header의 마이페이지 링크가 `/mypage`로 이동하는지 확인한다.
+- [ ] `/mypage` 홈에서 프로필, 주문 요약, 최근 주문, 기본 배송지, 최근 본 상품이 실제 API/localStorage 데이터로 표시되는지 확인한다.
+- [ ] 최근 본 상품은 상품 상세 또는 상품 카드 진입 후 `/mypage`에 반영되는지 확인한다.
+- [ ] `/mypage/orders`에서 주문 목록이 표시되고 주문 상세 링크가 `/orders/{orderId}`로 이동하는지 확인한다.
+- [ ] 기존 `/orders` 경로가 `/mypage/orders`로 이동하는지 확인한다.
+- [ ] `/mypage/login-info`에서 이메일과 비밀번호 마스킹이 표시되는지 확인한다.
+- [ ] 비밀번호 `변경` 버튼 클릭 시 작은 모달이 열리는지 확인한다.
+- [ ] 현재 비밀번호가 틀리면 비밀번호 변경이 실패하는지 확인한다.
+- [ ] 새 비밀번호와 확인 값이 다르면 프론트에서 변경이 차단되는지 확인한다.
+- [ ] 비밀번호 변경 후 기존 비밀번호 로그인이 실패하고 새 비밀번호 로그인이 성공하는지 확인한다.
+- [ ] `/mypage/profile`에서 프로필 이미지, 이름, 소개가 표시되는지 확인한다.
+- [ ] 프로필 이미지/이름/소개의 `변경` 버튼 클릭 시 작은 모달이 열리는지 확인한다.
+- [ ] 프로필 변경 저장 후 새로고침해도 변경 내용이 유지되는지 확인한다.
+- [ ] `/mypage/addresses`에서 기본 배송지와 저장된 주소가 분리 표시되는지 확인한다.
+- [ ] `+ 새 주소 추가하기` 클릭 시 주소 입력 모달이 열리는지 확인한다.
+- [ ] 주소 추가 모달에서 다음 우편번호 검색이 동작하는지 확인한다.
+- [ ] 주소 수정, 삭제, 기본 배송지 설정이 실제 배송지 API 결과와 일치하는지 확인한다.
+- [ ] 기존 `/my/addresses` 경로가 `/mypage/addresses`로 이동하는지 확인한다.
+
+## 5. 상품/장바구니/주문 흐름
 
 - [ ] `/`에서 상품 목록이 보이는지 확인한다.
 - [ ] keyword/category/series/status/inStockOnly/sort 필터가 동작하는지 확인한다.
@@ -136,7 +158,7 @@ npm run dev
 - [ ] 주문 생성 후 `/orders/{orderId}/payment`로 이동하는지 확인한다.
 - [ ] DB에서 주문 상태가 `PAYMENT_PENDING`, 재고 이력이 `RESERVED`인지 확인한다.
 
-## 5. Toss 결제 및 멱등성
+## 6. Toss 결제 및 멱등성
 
 - [ ] 결제하기 클릭 시 Toss 결제창이 정상 호출되는지 확인한다.
 - [ ] Toss `requestPayment.orderId`가 내부 숫자 ID가 아니라 주문 `orderUid`인지 확인한다.
@@ -149,8 +171,10 @@ npm run dev
 - [ ] 중복 승인 시 주문/결제/`CONFIRMED` 재고 이력이 중복 처리되지 않는지 확인한다.
 - [ ] 결제 실패 또는 결제 대기 페이지 취소 시 주문 상태가 `FAILED`, 재고 이력이 `RELEASED`인지 확인한다.
 - [ ] 사용자 결제 취소/환불 시 주문과 결제 상태가 `CANCELED`인지 확인한다.
+- [ ] 같은 주문에 다른 `paymentKey` 또는 Toss 주문번호가 들어오면 승인이 거부되는지 확인한다.
+- [ ] 같은 관리자 환불 요청을 반복해도 재고와 `RELEASED` 이력이 중복 처리되지 않는지 확인한다.
 
-## 6. 관리자 흐름과 감사 로그
+## 7. 관리자 흐름과 감사 로그
 
 ### 관리자 권한
 
@@ -161,6 +185,7 @@ npm run dev
 ### 관리자 상품
 
 - [ ] `/admin/products`에서 상품을 등록한다.
+- [ ] `/admin/products`에서 상품명, 카테고리, 시리즈, 상태, 재고 부족 필터가 동작하는지 확인한다.
 - [ ] 상품을 수정한다.
 - [ ] 상품 수정에서 출시일과 이미지 URL을 비우고 저장하면 기존 `releaseDate`, `imageUrl`이 제거되는지 확인한다.
 - [ ] 상품을 숨김 처리한다.
@@ -171,6 +196,7 @@ npm run dev
 ### 관리자 주문/배송
 
 - [ ] `/admin/orders`에서 주문 목록을 확인한다.
+- [ ] `/admin/orders`에서 주문 상태, 회원 이메일, 기간 필터가 동작하는지 확인한다.
 - [ ] `/admin/orders/{id}`에서 주문 상세를 확인한다.
 - [ ] `PAID -> PREPARING` 처리 후 `/admin/audit-logs`에서 `ORDER_PREPARED` 로그를 확인한다.
 - [ ] `PREPARING -> SHIPPED` 처리 시 택배사와 운송장 번호를 입력한다.
@@ -187,7 +213,7 @@ npm run dev
 - [ ] 재고 복구와 `RELEASED` 이력이 중복 처리되지 않는지 확인한다.
 - [ ] `/admin/audit-logs`에서 `PAYMENT_CANCELED` 로그를 확인한다.
 
-## 7. CORS 확인
+## 8. CORS 확인
 
 - [ ] `CORS_ALLOWED_ORIGINS`에 로컬 프론트 Origin을 설정한다.
 - [ ] 로컬 프론트에서 백엔드 API 호출이 정상 동작하는지 확인한다.
@@ -195,7 +221,7 @@ npm run dev
 - [ ] 운영/스테이징 배포 시 실제 프론트 도메인을 `CORS_ALLOWED_ORIGINS`에 설정한다.
 - [ ] 여러 Origin은 쉼표로 구분하고 공백이 trim되는지 확인한다.
 
-## 8. S3 이미지 업로드 검증
+## 9. S3 이미지 업로드 검증
 
 - [ ] `/admin/products`에서 이미지 업로드를 실행한다.
 - [ ] `jpg`, `jpeg`, `png`, `webp` 파일 업로드가 허용되는지 확인한다.
@@ -208,7 +234,17 @@ npm run dev
 - [ ] 업로드된 S3 key가 `products/{uuid}.{extension}` 형태인지 확인한다.
 - [ ] 원본 파일명의 공백, 한글, 특수문자가 S3 key에 직접 반영되지 않는지 확인한다.
 
-## 9. DB 확인 쿼리
+## 10. 출시 전 회귀 QA
+
+- [ ] 회원가입, 로그인, 비밀번호 재설정이 정상 동작한다.
+- [ ] 마이페이지 홈, 로그인 정보, 프로필 관리, 주소록, 주문 내역이 모바일/데스크톱에서 깨지지 않는다.
+- [ ] 상품 목록, 상품 상세, 장바구니, 주문 생성, 결제 대기 페이지가 정상 동작한다.
+- [ ] 결제 성공, 결제 실패, 결제 대기 취소, 관리자 환불을 각각 확인한다.
+- [ ] 관리자 상품 등록/수정/숨김, 이미지 업로드, 주문 검색/필터, 배송 상태 변경, 감사 로그 조회를 확인한다.
+- [ ] 고객 이메일 알림 또는 `MAIL_MODE=LOG` 로그가 회원/주문/결제/배송 흐름에 맞게 남는지 확인한다.
+- [ ] 운영/스테이징 배포 전에는 [release-qa-checklist.md](release-qa-checklist.md)와 [operations-readiness.md](operations-readiness.md)의 스테이징, Secret, 결제 검증, 모니터링 항목을 함께 확인한다.
+
+## 11. DB 확인 쿼리
 
 ### 주문
 
@@ -242,7 +278,23 @@ FROM admin_audit_logs
 ORDER BY id DESC;
 ```
 
-## 10. 자주 발생하는 오류
+### 회원 프로필
+
+```sql
+SELECT id, email, name, profile_image_url, bio, role, created_at, updated_at
+FROM members
+ORDER BY id DESC;
+```
+
+### 배송지
+
+```sql
+SELECT id, member_id, label, receiver_name, receiver_phone, zip_code, address1, address2, is_default, created_at, updated_at
+FROM delivery_addresses
+ORDER BY member_id, is_default DESC, created_at DESC;
+```
+
+## 12. 자주 발생하는 오류
 
 ### 401 Unauthorized
 

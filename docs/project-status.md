@@ -8,6 +8,8 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 - Frontend: Next.js App Router, TypeScript
 - API 기준 문서: `docs/api-spec.md`
 - 로컬 테스트 기준 문서: `docs/local-test-checklist.md`
+- 출시 전 QA 기준 문서: `docs/release-qa-checklist.md`
+- 운영 준비 기준 문서: `docs/operations-readiness.md`
 
 ## 현재 구현 완료 기능
 
@@ -23,6 +25,7 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
   - 요청 수량 기준 재고 부족 시 거부
 - 관리자 상품 등록, 수정, 숨김 처리
   - 관리자 상품 목록은 `HIDDEN` 상품까지 포함해 조회
+  - 상품명, 카테고리, 시리즈, 상태, 재고 부족 필터 지원
   - 상품 수정에서 `releaseDate`, `imageUrl`에 `null`을 보내면 기존 값 제거
 - 관리자 S3 이미지 업로드
   - 허용 확장자와 MIME 검증
@@ -32,6 +35,7 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 - 배송지 목록, 추가, 수정, 삭제, 기본 배송지 설정
 - 장바구니 기반 주문 생성 및 배송지 선택 주문 생성
 - 일반 사용자 주문 목록/상세 조회
+  - 사용자 주문 상세에서 택배사, 운송장 번호, 발송/배송 완료 시간 표시
 - 주문 생성 후 결제 대기 페이지 이동
 - Toss 결제 승인/실패/취소/환불 흐름
 - 결제 승인/취소 멱등성 강화
@@ -42,6 +46,7 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 - 주문 생성 시 상품 조회에 pessimistic write lock 사용
 - 주문 만료 처리
 - 관리자 주문 목록/상세 조회
+  - 주문 상태, 회원 이메일, 기간 필터 지원
 - 관리자 배송 상태 변경
   - `PAID -> PREPARING`
   - `PREPARING -> SHIPPED`
@@ -53,6 +58,15 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
   - 주문 배송 준비/발송/완료
   - 관리자 결제 취소/환불
 - 관리자 감사 로그 조회 API와 `/admin/audit-logs` 페이지
+- KREAM형 마이페이지
+  - `/mypage` 홈 대시보드
+  - `/mypage/orders`
+  - `/mypage/login-info`
+  - `/mypage/profile`
+  - `/mypage/addresses`
+  - 프로필/로그인/주소 변경은 정보 행과 모달 편집 방식
+- 주문 생성, 결제 완료, 배송 시작/완료 고객 이메일 알림
+- 만료/사용 완료 이메일 인증 데이터 정리 스케줄러
 - CORS 허용 Origin 환경변수화
   - `CORS_ALLOWED_ORIGINS`
   - 쉼표 구분, trim, 빈 값 제외
@@ -87,7 +101,7 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
   - Flyway 기반 SQL migration으로 신규 테이블/컬럼 변경 관리
   - 기본 운영 흐름은 `JPA_DDL_AUTO=validate`와 Flyway migration
   - `JPA_DDL_AUTO=update`는 로컬 긴급 확인용으로만 사용
-  - 현재 migration은 누락 가능성이 높은 `admin_audit_logs`, `email_verifications` 테이블 생성을 포함
+  - 현재 migration은 누락 가능성이 높은 `admin_audit_logs`, `email_verifications` 테이블과 회원 프로필 필드 생성을 포함
 
 ## 프론트엔드 구현 상태
 
@@ -99,6 +113,11 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
   - `/password-reset`
 - 로그인 사용자 페이지:
   - `/cart`
+  - `/mypage`
+  - `/mypage/orders`
+  - `/mypage/login-info`
+  - `/mypage/profile`
+  - `/mypage/addresses`
   - `/my/addresses`
   - `/orders`
   - `/orders/[id]`
@@ -168,6 +187,7 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 - 로컬 이메일 인증은 `MAIL_MODE=LOG`로 실행하고 백엔드 로그의 `[EMAIL_VERIFICATION]` 인증번호를 사용한다.
 - 관리자 테스트 계정은 DB에서 `ROLE_ADMIN`으로 변경 후 재로그인 필요
 - 상세 흐름은 `docs/local-test-checklist.md` 기준으로 확인
+- 스테이징, Secret, 결제 검증, 모니터링 기준은 `docs/operations-readiness.md` 기준으로 확인
 
 ## 운영 안정성 보강 현황
 
@@ -181,9 +201,20 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 - 토큰 만료 UX 개선
 - 이메일 인증 기반 회원가입 및 비밀번호 재설정
 - Flyway 기반 DB 마이그레이션 도입
+- 이메일 인증 데이터 정리 스케줄러
+- 고객 주문/결제/배송 알림 이메일
+- 관리자 주문/상품 필터 개선
 - CORS 허용 Origin 환경변수화
 - S3 이미지 업로드 검증 강화
 - Secret 관리 점검 및 `.gitignore` 보강
+- KREAM형 마이페이지와 회원 프로필/로그인 정보 관리
+- 운영 준비 문서화
+  - 출시 전 QA 체크리스트
+  - 스테이징 환경 기준
+  - Secret 관리 기준
+  - Toss 결제 반복 검증 기준
+  - S3/SMTP 운영 기준
+  - 모니터링/장애 대응 기준
 
 남은 보강 후보:
 
@@ -192,7 +223,6 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 - S3 운영 버킷 권한 정책 최소화
 - refresh token 도입 여부 검토
 - 주문 상태와 결제 상태/배송 상태 분리 검토
-- 이메일 인증 데이터 정리 정책
 - 실제 SMTP 발신 도메인/SPF/DKIM/DMARC 설정
 - 로그/모니터링 및 장애 알림
 - 주문/결제 실패 재처리 정책
@@ -201,9 +231,10 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 ## 다음 추천 작업 순서
 
 1. 이메일 인증 기능을 포함해 `docs/local-test-checklist.md` 기준으로 로컬 전체 흐름을 반복 검증한다.
-2. 새 엔티티/컬럼을 추가하는 작업부터는 Flyway migration SQL을 먼저 작성하고 `JPA_DDL_AUTO=validate`로 검증한다.
-3. 운영/스테이징 환경변수와 Secret 주입 방식을 확정한다.
-4. 실제 SMTP를 사용할 발신 계정, 발신 도메인 인증, 실패/반송 모니터링 방식을 정한다.
-5. 이메일 인증 데이터 보관/정리 정책과 스케줄러를 추가한다.
-6. 운영 S3 권한, CORS 도메인, Toss 키 전환 절차를 점검한다.
-7. 로그/모니터링과 결제 실패 재처리 정책을 정리한다.
+2. 출시 전에는 `docs/release-qa-checklist.md` 기준으로 회귀 QA를 수행한다.
+3. 새 엔티티/컬럼을 추가하는 작업부터는 Flyway migration SQL을 먼저 작성하고 `JPA_DDL_AUTO=validate`로 검증한다.
+4. 운영/스테이징 환경변수와 Secret 주입 방식을 확정한다.
+5. `docs/operations-readiness.md` 기준으로 스테이징 환경을 구성하고 Toss 결제 성공/실패/중복 승인/환불을 반복 검증한다.
+6. 실제 SMTP를 사용할 발신 계정, 발신 도메인 인증, 실패/반송 모니터링 방식을 정한다.
+7. 운영 S3 권한, CORS 도메인, Toss 키 전환 절차를 점검한다.
+8. 로그/모니터링과 결제 실패 재처리 정책을 정리한다.
