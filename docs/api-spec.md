@@ -1012,6 +1012,7 @@ Request:
 필드 의미:
 
 - `orderId`: PKM Box Store 내부 주문 ID이다. 주문 조회, 권한 확인, 주문 상태 변경에 사용한다.
+- `provider`: 현재 실제 결제 클라이언트는 `TOSS`만 구현되어 있다. 다른 provider 값은 `PAYMENT_PROVIDER_NOT_SUPPORTED`로 거부된다.
 - `paymentKey`: Toss가 성공 리다이렉트로 내려준 결제 키이다.
 - `providerOrderId`: Toss가 성공 리다이렉트 query의 `orderId`로 내려준 값이다. PKM Box Store 주문의 `orderUid`와 같아야 한다.
 - `amount`: Toss가 성공 리다이렉트로 내려준 결제 금액이다.

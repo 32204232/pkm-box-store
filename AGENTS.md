@@ -3,8 +3,8 @@
 ## Project
 PKM Box Store is a Korean Pokemon card box shopping mall.
 
-- Backend: Spring Boot, Java 17, MySQL, JPA, JWT, Toss Payments, AWS S3, Flyway
-- Frontend: Next.js App Router, TypeScript
+- Backend: Spring Boot 3.3.x, Java 17, MySQL, JPA, JWT, Toss Payments, AWS S3, Flyway
+- Frontend: Next.js App Router, React 19, TypeScript
 - Styling: plain CSS in `frontend/app/globals.css`
 
 For the full project rules, follow `.cursor/rules/project.mdc`. This file is a short always-loaded summary.

@@ -4,8 +4,8 @@
 
 PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 프로젝트이다.
 
-- Backend: Spring Boot, MySQL, JWT, AWS S3, Toss Payments
-- Frontend: Next.js App Router, TypeScript
+- Backend: Spring Boot 3.3.x, Java 17, MySQL, JWT, Flyway, AWS S3, Toss Payments
+- Frontend: Next.js App Router, React 19, TypeScript
 - API 기준 문서: `docs/api-spec.md`
 - 로컬 테스트 기준 문서: `docs/local-test-checklist.md`
 - 출시 전 QA 기준 문서: `docs/release-qa-checklist.md`
@@ -45,6 +45,7 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 - 재고 예약, 확정, 해제 이력 기록
 - 주문 생성 시 상품 조회에 pessimistic write lock 사용
 - 주문 만료 처리
+  - 결제 대기 주문은 만료 시 `EXPIRED`로 변경되고 예약 재고는 복구
 - 관리자 주문 목록/상세 조회
   - 주문 상태, 회원 이메일, 기간 필터 지원
 - 관리자 배송 상태 변경
@@ -86,7 +87,8 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
   - `inventory`: 재고 증감 및 이력
   - `dashboard`: 관리자 대시보드
   - `adminlog`: 관리자 감사 로그
-  - `s3`: 관리자 이미지 업로드 및 업로드 파일 검증
+  - `notification`: 주문/결제/배송 고객 알림
+  - `global/s3`: 관리자 이미지 업로드 및 업로드 파일 검증
 - 인증/인가:
   - 일반 상품 조회와 회원가입/로그인/이메일 인증/비밀번호 재설정은 공개
   - `/api/admin/**`는 관리자 권한 필요
@@ -101,7 +103,7 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
   - Flyway 기반 SQL migration으로 신규 테이블/컬럼 변경 관리
   - 기본 운영 흐름은 `JPA_DDL_AUTO=validate`와 Flyway migration
   - `JPA_DDL_AUTO=update`는 로컬 긴급 확인용으로만 사용
-  - 현재 migration은 누락 가능성이 높은 `admin_audit_logs`, `email_verifications` 테이블과 회원 프로필 필드 생성을 포함
+  - 현재 migration은 `admin_audit_logs`, `email_verifications`, `members` 기본 테이블 보강과 회원 프로필 필드 생성을 포함
 
 ## 프론트엔드 구현 상태
 
