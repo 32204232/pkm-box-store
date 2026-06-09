@@ -1,0 +1,30 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/pkm_box_store?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    username: ${DB_USERNAME:pkm_user}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:validate}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+jwt:
+  secret: ${JWT_SECRET:local-development-jwt-secret-change-before-production-32bytes}
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+mail:
+  mode: ${MAIL_MODE:LOG}
+
+logging:
+  level:
+    org.hibernate.SQL: ${LOGGING_LEVEL_HIBERNATE_SQL:debug}
