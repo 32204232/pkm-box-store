@@ -316,6 +316,7 @@ export function Header() {
                 </div>
                 <div className="header-admin-links">
                   <Link href="/admin" onClick={closeMenu}>Dashboard</Link>
+                  <Link href="/admin/catalog" onClick={closeMenu}>Catalog</Link>
                   <Link href="/admin/products" onClick={closeMenu}>Products</Link>
                   <Link href="/admin/orders" onClick={closeMenu}>Orders</Link>
                   <Link href="/admin/audit-logs" onClick={closeMenu}>Audit Logs</Link>

@@ -261,6 +261,246 @@ Response: `204 No Content`
 
 ## 2. 상품 API
 
+### 카테고리 목록 조회
+
+- Method: `GET`
+- URL: `/api/categories`
+- 인증: 불필요
+
+`active=true`인 카테고리를 `displayOrder`, `id` 순으로 조회한다.
+
+Response:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "미개봉 상품",
+    "slug": "sealed-product",
+    "description": "미개봉 포켓몬 카드 박스와 세트 상품",
+    "displayOrder": 10,
+    "active": true
+  }
+]
+```
+
+### 상품 유형 목록 조회
+
+- Method: `GET`
+- URL: `/api/product-types`
+- 인증: 불필요
+
+Query Parameters:
+
+- `categoryId`: 특정 카테고리에 속한 상품 유형만 조회
+
+Response:
+
+```json
+[
+  {
+    "id": 1,
+    "categoryId": 1,
+    "categoryName": "미개봉 상품",
+    "name": "확장팩 박스",
+    "slug": "expansion-box",
+    "description": "확장팩 sealed box 상품",
+    "displayOrder": 10,
+    "active": true
+  }
+]
+```
+
+### 시리즈 목록 조회
+
+- Method: `GET`
+- URL: `/api/series`
+- 인증: 불필요
+
+`active=true`인 시리즈를 `displayOrder`, `id` 순으로 조회한다.
+
+Response:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "스칼렛&바이올렛",
+    "slug": "scarlet-violet",
+    "description": "스칼렛&바이올렛 시리즈",
+    "displayOrder": 10,
+    "active": true
+  }
+]
+```
+
+### 관리자 카탈로그 API
+
+관리자 Catalog API는 모두 관리자 인증이 필요하다. 삭제 API는 제공하지 않고, 숨김 처리는 `PATCH` 요청에서 `active=false`로 처리한다.
+관리자 목록 조회는 `active` 여부와 관계없이 전체 항목을 반환한다. 기존 상품이 참조 중인 Category, ProductType, Series를 `active=false`로 바꿔도 상품 참조는 자동 제거되지 않는다.
+
+#### 관리자 카테고리 목록 조회
+
+- Method: `GET`
+- URL: `/api/admin/categories`
+- 인증: 관리자 필요
+
+Response:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "미개봉 상품",
+    "slug": "sealed-product",
+    "description": "미개봉 포켓몬 카드 박스와 세트 상품",
+    "displayOrder": 10,
+    "active": true
+  }
+]
+```
+
+#### 관리자 카테고리 생성/수정
+
+- Method: `POST`
+- URL: `/api/admin/categories`
+- 인증: 관리자 필요
+
+- Method: `PATCH`
+- URL: `/api/admin/categories/{id}`
+- 인증: 관리자 필요
+
+Request:
+
+```json
+{
+  "name": "미개봉 상품",
+  "slug": "sealed-product",
+  "description": "미개봉 포켓몬 카드 박스와 세트 상품",
+  "displayOrder": 10,
+  "active": true
+}
+```
+
+`displayOrder`가 `null`이면 `0`, `active`가 `null`이면 `true`로 처리한다. `slug`는 영문 소문자, 숫자, 하이픈만 허용한다.
+
+주요 예외:
+
+- `CATEGORY_NOT_FOUND`
+- `DUPLICATE_CATEGORY_SLUG`
+- `INVALID_REQUEST`
+- `401 Unauthorized`
+- `403 Forbidden`
+
+#### 관리자 상품 유형 목록 조회
+
+- Method: `GET`
+- URL: `/api/admin/product-types`
+- 인증: 관리자 필요
+
+Response:
+
+```json
+[
+  {
+    "id": 1,
+    "categoryId": 1,
+    "categoryName": "미개봉 상품",
+    "name": "확장팩 박스",
+    "slug": "expansion-box",
+    "description": "확장팩 sealed box 상품",
+    "displayOrder": 10,
+    "active": true
+  }
+]
+```
+
+#### 관리자 상품 유형 생성/수정
+
+- Method: `POST`
+- URL: `/api/admin/product-types`
+- 인증: 관리자 필요
+
+- Method: `PATCH`
+- URL: `/api/admin/product-types/{id}`
+- 인증: 관리자 필요
+
+Request:
+
+```json
+{
+  "categoryId": 1,
+  "name": "확장팩 박스",
+  "slug": "expansion-box",
+  "description": "확장팩 sealed box 상품",
+  "displayOrder": 10,
+  "active": true
+}
+```
+
+같은 카테고리 안에서 `slug`는 중복될 수 없다. `categoryId`는 존재하고 active 상태인 카테고리여야 한다.
+
+주요 예외:
+
+- `CATEGORY_NOT_FOUND`
+- `PRODUCT_TYPE_NOT_FOUND`
+- `DUPLICATE_PRODUCT_TYPE_SLUG`
+- `INVALID_CATALOG_REQUEST`
+- `INVALID_REQUEST`
+- `401 Unauthorized`
+- `403 Forbidden`
+
+#### 관리자 시리즈 목록 조회
+
+- Method: `GET`
+- URL: `/api/admin/series`
+- 인증: 관리자 필요
+
+Response:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "스칼렛&바이올렛",
+    "slug": "scarlet-violet",
+    "description": "스칼렛&바이올렛 시리즈",
+    "displayOrder": 10,
+    "active": true
+  }
+]
+```
+
+#### 관리자 시리즈 생성/수정
+
+- Method: `POST`
+- URL: `/api/admin/series`
+- 인증: 관리자 필요
+
+- Method: `PATCH`
+- URL: `/api/admin/series/{id}`
+- 인증: 관리자 필요
+
+Request:
+
+```json
+{
+  "name": "스칼렛&바이올렛",
+  "slug": "scarlet-violet",
+  "description": "스칼렛&바이올렛 시리즈",
+  "displayOrder": 10,
+  "active": true
+}
+```
+
+주요 예외:
+
+- `SERIES_NOT_FOUND`
+- `DUPLICATE_SERIES_SLUG`
+- `INVALID_REQUEST`
+- `401 Unauthorized`
+- `403 Forbidden`
+
 ### 상품 목록 조회
 
 - Method: `GET`
@@ -272,6 +512,9 @@ Query Parameters:
 - `keyword`: 상품명 또는 설명 검색어
 - `category`: 카테고리 필터
 - `series`: 시리즈 필터
+- `categoryId`: DB master 카테고리 ID 필터
+- `productTypeId`: DB master 상품 유형 ID 필터
+- `seriesId`: DB master 시리즈 ID 필터
 - `status`: 판매 상태 필터. 일반 목록 조회 예시는 `ON_SALE`, `SOLD_OUT`, `COMING_SOON`만 사용한다.
 - `inStockOnly`: `true`이면 `stockQuantity > 0` 상품만 조회
 - `sort`: 정렬 기준. `latest`, `priceAsc`, `priceDesc`, `releaseDateDesc`
@@ -293,8 +536,16 @@ Response:
     "name": "포켓몬 카드 박스",
     "description": "한국어판 포켓몬 카드 박스",
     "price": 30000,
+    "retailPrice": null,
     "category": "부스터 박스",
     "series": "스칼렛&바이올렛",
+    "categoryId": 1,
+    "categoryName": "미개봉 상품",
+    "productTypeId": 1,
+    "productTypeName": "확장팩 박스",
+    "seriesId": 1,
+    "seriesName": "스칼렛&바이올렛",
+    "language": "KOREAN",
     "releaseDate": "2026-01-01",
     "stockQuantity": 20,
     "imageUrl": "https://example.com/product.jpg",
@@ -325,8 +576,16 @@ Response:
   "name": "포켓몬 카드 박스",
   "description": "한국어판 포켓몬 카드 박스",
   "price": 30000,
+  "retailPrice": null,
   "category": "부스터 박스",
   "series": "스칼렛&바이올렛",
+  "categoryId": 1,
+  "categoryName": "미개봉 상품",
+  "productTypeId": 1,
+  "productTypeName": "확장팩 박스",
+  "seriesId": 1,
+  "seriesName": "스칼렛&바이올렛",
+  "language": "KOREAN",
   "releaseDate": "2026-01-01",
   "stockQuantity": 20,
   "imageUrl": "https://example.com/product.jpg",
@@ -351,6 +610,9 @@ Query Parameters:
 - `keyword`: 상품명 또는 설명 검색어
 - `category`: 카테고리 필터
 - `series`: 시리즈 필터
+- `categoryId`: DB master 카테고리 ID 필터
+- `productTypeId`: DB master 상품 유형 ID 필터
+- `seriesId`: DB master 시리즈 ID 필터
 - `status`: 상품 상태 필터. `HIDDEN` 포함 가능
 - `lowStockOnly`: `true`이면 재고 부족 상품만 조회
 
@@ -367,8 +629,16 @@ Response:
     "name": "포켓몬 카드 박스",
     "description": "한국어판 포켓몬 카드 박스",
     "price": 30000,
+    "retailPrice": null,
     "category": "부스터 박스",
     "series": "스칼렛&바이올렛",
+    "categoryId": 1,
+    "categoryName": "미개봉 상품",
+    "productTypeId": 1,
+    "productTypeName": "확장팩 박스",
+    "seriesId": 1,
+    "seriesName": "스칼렛&바이올렛",
+    "language": "KOREAN",
     "releaseDate": "2026-01-01",
     "stockQuantity": 20,
     "imageUrl": "https://example.com/product.jpg",
@@ -397,8 +667,13 @@ Request:
   "name": "포켓몬 카드 박스",
   "description": "한국어판 포켓몬 카드 박스",
   "price": 30000,
+  "retailPrice": null,
   "category": "부스터 박스",
   "series": "스칼렛&바이올렛",
+  "categoryId": 1,
+  "productTypeId": 1,
+  "seriesId": 1,
+  "language": "KOREAN",
   "releaseDate": "2026-01-01",
   "stockQuantity": 20,
   "imageUrl": "https://example.com/product.jpg",
@@ -414,8 +689,16 @@ Response: `201 Created`
   "name": "포켓몬 카드 박스",
   "description": "한국어판 포켓몬 카드 박스",
   "price": 30000,
+  "retailPrice": null,
   "category": "부스터 박스",
   "series": "스칼렛&바이올렛",
+  "categoryId": 1,
+  "categoryName": "미개봉 상품",
+  "productTypeId": 1,
+  "productTypeName": "확장팩 박스",
+  "seriesId": 1,
+  "seriesName": "스칼렛&바이올렛",
+  "language": "KOREAN",
   "releaseDate": "2026-01-01",
   "stockQuantity": 20,
   "imageUrl": "https://example.com/product.jpg",
@@ -427,6 +710,10 @@ Response: `201 Created`
 
 주요 예외:
 
+- `CATEGORY_NOT_FOUND`
+- `PRODUCT_TYPE_NOT_FOUND`
+- `SERIES_NOT_FOUND`
+- `PRODUCT_TYPE_CATEGORY_MISMATCH`
 - `INVALID_REQUEST`
 - `401 Unauthorized`
 - `403 Forbidden`
@@ -443,8 +730,13 @@ Request:
 {
   "name": "포켓몬 카드 박스 수정",
   "price": 32000,
+  "retailPrice": 36000,
   "category": "부스터 박스",
   "series": "스칼렛&바이올렛",
+  "categoryId": 1,
+  "productTypeId": 1,
+  "seriesId": 1,
+  "language": "KOREAN",
   "releaseDate": "2026-01-01",
   "stockQuantity": 10,
   "imageUrl": "https://example.com/product-updated.jpg",
@@ -452,7 +744,8 @@ Request:
 }
 ```
 
-`releaseDate`와 `imageUrl`은 `null`을 보내면 기존 값을 제거한다. 그 외 필드는 값이 있는 경우 해당 값으로 수정한다.
+`releaseDate`, `imageUrl`, `retailPrice`는 `null`을 보내면 기존 값을 제거한다. 그 외 필드는 값이 있는 경우 해당 값으로 수정한다.
+`categoryId`, `productTypeId`, `seriesId`는 nullable이다. 기존 `category`, `series` 문자열 필드는 레거시 호환용으로 유지한다.
 
 Response:
 
@@ -462,8 +755,16 @@ Response:
   "name": "포켓몬 카드 박스 수정",
   "description": "한국어판 포켓몬 카드 박스",
   "price": 32000,
+  "retailPrice": 36000,
   "category": "부스터 박스",
   "series": "스칼렛&바이올렛",
+  "categoryId": 1,
+  "categoryName": "미개봉 상품",
+  "productTypeId": 1,
+  "productTypeName": "확장팩 박스",
+  "seriesId": 1,
+  "seriesName": "스칼렛&바이올렛",
+  "language": "KOREAN",
   "releaseDate": "2026-01-01",
   "stockQuantity": 10,
   "imageUrl": "https://example.com/product-updated.jpg",
@@ -476,6 +777,10 @@ Response:
 주요 예외:
 
 - `PRODUCT_NOT_FOUND`
+- `CATEGORY_NOT_FOUND`
+- `PRODUCT_TYPE_NOT_FOUND`
+- `SERIES_NOT_FOUND`
+- `PRODUCT_TYPE_CATEGORY_MISMATCH`
 - `INVALID_REQUEST`
 - `401 Unauthorized`
 - `403 Forbidden`

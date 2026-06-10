@@ -1,4 +1,5 @@
 export type ProductStatus = "ON_SALE" | "SOLD_OUT" | "COMING_SOON" | "HIDDEN";
+export type ProductLanguage = "KOREAN" | "JAPANESE" | "ENGLISH";
 export type ProductSort = "latest" | "priceAsc" | "priceDesc" | "releaseDateDesc";
 export type MemberRole = "ROLE_MEMBER" | "ROLE_ADMIN";
 export type EmailVerificationPurpose = "SIGNUP" | "PASSWORD_RESET";
@@ -93,8 +94,16 @@ export interface Product {
   name: string;
   description: string;
   price: number;
+  retailPrice: number | null;
   category: string;
   series: string;
+  categoryId: number | null;
+  categoryName: string | null;
+  productTypeId: number | null;
+  productTypeName: string | null;
+  seriesId: number | null;
+  seriesName: string | null;
+  language: ProductLanguage | null;
   releaseDate: string | null;
   stockQuantity: number;
   imageUrl: string | null;
@@ -107,8 +116,13 @@ export interface ProductCreateRequest {
   name: string;
   description: string;
   price: number;
+  retailPrice?: number | null;
   category: string;
   series: string;
+  categoryId?: number | null;
+  productTypeId?: number | null;
+  seriesId?: number | null;
+  language?: ProductLanguage | null;
   releaseDate?: string | null;
   stockQuantity: number;
   imageUrl?: string | null;
@@ -121,6 +135,9 @@ export interface ProductSearchParams {
   keyword?: string;
   category?: string;
   series?: string;
+  categoryId?: number;
+  productTypeId?: number;
+  seriesId?: number;
   status?: Exclude<ProductStatus, "HIDDEN">;
   inStockOnly?: boolean;
   sort?: ProductSort;
@@ -130,9 +147,74 @@ export interface AdminProductSearchParams {
   keyword?: string;
   category?: string;
   series?: string;
+  categoryId?: number;
+  productTypeId?: number;
+  seriesId?: number;
   status?: ProductStatus;
   lowStockOnly?: boolean;
 }
+
+export interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  displayOrder: number;
+  active: boolean;
+}
+
+export interface CategoryCreateRequest {
+  name: string;
+  slug: string;
+  description?: string | null;
+  displayOrder?: number | null;
+  active?: boolean | null;
+}
+
+export type CategoryUpdateRequest = CategoryCreateRequest;
+
+export interface ProductType {
+  id: number;
+  categoryId: number;
+  categoryName: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  displayOrder: number;
+  active: boolean;
+}
+
+export interface ProductTypeCreateRequest {
+  categoryId: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  displayOrder?: number | null;
+  active?: boolean | null;
+}
+
+export type ProductTypeUpdateRequest = ProductTypeCreateRequest;
+
+export interface Series {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  displayOrder: number;
+  active: boolean;
+}
+
+export type ProductSeries = Series;
+
+export interface SeriesCreateRequest {
+  name: string;
+  slug: string;
+  description?: string | null;
+  displayOrder?: number | null;
+  active?: boolean | null;
+}
+
+export type SeriesUpdateRequest = SeriesCreateRequest;
 
 export interface CartItem {
   id: number;

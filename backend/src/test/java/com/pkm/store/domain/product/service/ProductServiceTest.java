@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import com.pkm.store.domain.adminlog.service.AdminAuditLogService;
 import com.pkm.store.domain.adminlog.type.AdminAuditActionType;
 import com.pkm.store.domain.adminlog.type.AdminAuditTargetType;
+import com.pkm.store.domain.catalog.service.CatalogValidationService;
 import com.pkm.store.domain.product.dto.ProductCreateRequest;
 import com.pkm.store.domain.product.dto.ProductResponse;
 import com.pkm.store.domain.product.dto.ProductSearchCondition;
@@ -34,6 +35,9 @@ class ProductServiceTest {
 
     @Mock
     private ProductRepository productRepository;
+
+    @Mock
+    private CatalogValidationService catalogValidationService;
 
     @Mock
     private AdminAuditLogService adminAuditLogService;
@@ -148,7 +152,7 @@ class ProductServiceTest {
     void getProductsExcludesHiddenProducts() {
         Product product = createProduct("판매 상품", ProductStatus.ON_SALE);
         Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
-        given(productRepository.searchProducts(null, null, null, null, false, ProductStatus.HIDDEN, sort))
+        given(productRepository.searchProducts(null, null, null, null, null, null, null, false, ProductStatus.HIDDEN, sort))
                 .willReturn(List.of(product));
 
         List<ProductResponse> responses = productService.getProducts(
@@ -158,7 +162,7 @@ class ProductServiceTest {
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).name()).isEqualTo("판매 상품");
         assertThat(responses.get(0).status()).isNotEqualTo(ProductStatus.HIDDEN);
-        verify(productRepository).searchProducts(null, null, null, null, false, ProductStatus.HIDDEN, sort);
+        verify(productRepository).searchProducts(null, null, null, null, null, null, null, false, ProductStatus.HIDDEN, sort);
     }
 
     @Test
@@ -166,7 +170,7 @@ class ProductServiceTest {
         Product visibleProduct = createProduct("판매 상품", ProductStatus.ON_SALE);
         Product hiddenProduct = createProduct("숨김 상품", ProductStatus.HIDDEN);
         Sort sort = Sort.by(Sort.Direction.ASC, "stockQuantity").and(Sort.by(Sort.Direction.DESC, "createdAt"));
-        given(productRepository.searchAdminProducts(null, null, null, null, false, 5, sort))
+        given(productRepository.searchAdminProducts(null, null, null, null, null, null, null, false, 5, sort))
                 .willReturn(List.of(hiddenProduct, visibleProduct));
 
         List<ProductResponse> responses = productService.getAdminProducts();
@@ -174,7 +178,7 @@ class ProductServiceTest {
         assertThat(responses).hasSize(2);
         assertThat(responses).extracting(ProductResponse::status)
                 .containsExactly(ProductStatus.HIDDEN, ProductStatus.ON_SALE);
-        verify(productRepository).searchAdminProducts(null, null, null, null, false, 5, sort);
+        verify(productRepository).searchAdminProducts(null, null, null, null, null, null, null, false, 5, sort);
     }
 
     @Test

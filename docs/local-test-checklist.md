@@ -203,12 +203,37 @@ npm run dev
 
 - [ ] 테스트 계정의 DB `members.role`을 `ROLE_ADMIN`으로 변경한다.
 - [ ] 로그아웃 후 다시 로그인한다.
-- [ ] Header에 관리자 대시보드, 상품, 주문, 감사 로그 링크가 보이는지 확인한다.
+- [ ] Header에 관리자 대시보드, 카탈로그, 상품, 주문, 감사 로그 링크가 보이는지 확인한다.
+
+### 관리자 Catalog
+
+- [ ] `/admin/catalog`에 접속한다.
+- [ ] Category 탭에서 새 Category를 생성한다.
+- [ ] Category 이름, slug, 설명, 표시 순서, active 값을 수정한다.
+- [ ] Category를 `active=false`로 숨김 처리하고 목록의 상태 배지가 바뀌는지 확인한다.
+- [ ] 숨김 처리한 Category를 다시 활성화한다.
+- [ ] ProductType 탭에서 Category를 선택해 새 ProductType을 생성한다.
+- [ ] ProductType 이름, slug, 설명, 표시 순서, active 값을 수정한다.
+- [ ] ProductType을 `active=false`로 숨김 처리하고 목록의 상태 배지가 바뀌는지 확인한다.
+- [ ] 숨김 처리한 ProductType을 다시 활성화한다.
+- [ ] Series 탭에서 새 Series를 생성한다.
+- [ ] Series 이름, slug, 설명, 표시 순서, active 값을 수정한다.
+- [ ] Series를 `active=false`로 숨김 처리하고 목록의 상태 배지가 바뀌는지 확인한다.
+- [ ] 숨김 처리한 Series를 다시 활성화한다.
+- [ ] Catalog 생성/수정/숨김 처리 중 slug 중복, 잘못된 slug 형식, 권한 없음 오류가 사용자에게 표시되는지 확인한다.
 
 ### 관리자 상품
 
 - [ ] `/admin/products`에서 상품을 등록한다.
-- [ ] `/admin/products`에서 상품명, 카테고리, 시리즈, 상태, 재고 부족 필터가 동작하는지 확인한다.
+- [ ] 상품 등록 폼에서 Category, ProductType, Series를 선택할 수 있는지 확인한다.
+- [ ] Category 선택 시 ProductType 목록이 해당 Category에 속한 항목으로 제한되는지 확인한다.
+- [ ] Series는 전체 Series 목록에서 선택할 수 있고, 선택 안 함 옵션이 있는지 확인한다.
+- [ ] Language select에서 한국어판, 일본어판, 영어판을 선택할 수 있는지 확인한다.
+- [ ] 정가 또는 소비자가 입력 없이 저장하면 `retailPrice`가 비워지는지 확인한다.
+- [ ] 정가를 입력해 저장하면 관리자 상품 목록에 정가가 표시되는지 확인한다.
+- [ ] 기존 `category`/`series` 문자열만 있는 상품을 수정 화면에서 열어도 레거시 값이 유지되고 저장 흐름이 깨지지 않는지 확인한다.
+- [ ] 상품 저장 후 관리자 상품 목록에서 `categoryName`, `productTypeName`, `seriesName`, `language`, `retailPrice` 표시를 확인한다.
+- [ ] `/admin/products`에서 상품명, master 카테고리, master 상품 유형, master 시리즈, 레거시 카테고리/시리즈, 상태, 재고 부족 필터가 동작하는지 확인한다.
 - [ ] 상품을 수정한다.
 - [ ] 상품 수정에서 출시일과 이미지 URL을 비우고 저장하면 기존 `releaseDate`, `imageUrl`이 제거되는지 확인한다.
 - [ ] 상품을 숨김 처리한다.
@@ -263,7 +288,7 @@ npm run dev
 - [ ] 마이페이지 홈, 로그인 정보, 프로필 관리, 주소록, 주문 내역이 모바일/데스크톱에서 깨지지 않는다.
 - [ ] 상품 목록, 상품 상세, 장바구니, 주문 생성, 결제 대기 페이지가 정상 동작한다.
 - [ ] 결제 성공, 결제 실패, 결제 대기 취소, 관리자 환불을 각각 확인한다.
-- [ ] 관리자 상품 등록/수정/숨김, 이미지 업로드, 주문 검색/필터, 배송 상태 변경, 감사 로그 조회를 확인한다.
+- [ ] 관리자 Catalog 생성/수정/숨김, 상품 등록/수정/숨김, 이미지 업로드, 주문 검색/필터, 배송 상태 변경, 감사 로그 조회를 확인한다.
 - [ ] 고객 이메일 알림 또는 `MAIL_MODE=LOG` 로그가 회원/주문/결제/배송 흐름에 맞게 남는지 확인한다.
 - [ ] 운영/스테이징 배포 전에는 [release-qa-checklist.md](release-qa-checklist.md)와 [operations-readiness.md](operations-readiness.md)의 스테이징, Secret, 결제 검증, 모니터링 항목을 함께 확인한다.
 

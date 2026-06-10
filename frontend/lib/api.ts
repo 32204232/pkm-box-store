@@ -7,6 +7,9 @@ import type {
   AdminProductSearchParams,
   Cart,
   CartItem,
+  Category,
+  CategoryCreateRequest,
+  CategoryUpdateRequest,
   DeliveryAddress,
   DeliveryAddressRequest,
   EmailVerificationSendRequest,
@@ -26,7 +29,14 @@ import type {
   Product,
   ProductCreateRequest,
   ProductSearchParams,
+  ProductSeries,
+  ProductType,
+  ProductTypeCreateRequest,
+  ProductTypeUpdateRequest,
   ProductUpdateRequest,
+  Series,
+  SeriesCreateRequest,
+  SeriesUpdateRequest,
   SignupRequest
 } from "@/types/api";
 
@@ -176,6 +186,15 @@ export const api = {
     if (params.series?.trim()) {
       searchParams.set("series", params.series.trim());
     }
+    if (params.categoryId !== undefined) {
+      searchParams.set("categoryId", String(params.categoryId));
+    }
+    if (params.productTypeId !== undefined) {
+      searchParams.set("productTypeId", String(params.productTypeId));
+    }
+    if (params.seriesId !== undefined) {
+      searchParams.set("seriesId", String(params.seriesId));
+    }
     if (params.status) {
       searchParams.set("status", params.status);
     }
@@ -194,6 +213,59 @@ export const api = {
     return request<Product>(`/api/products/${id}`, { auth: false });
   },
 
+  categories() {
+    return request<Category[]>("/api/categories", { auth: false });
+  },
+
+  productTypes(categoryId?: number) {
+    const searchParams = new URLSearchParams();
+    if (categoryId !== undefined) {
+      searchParams.set("categoryId", String(categoryId));
+    }
+    const query = searchParams.toString();
+    return request<ProductType[]>(`/api/product-types${query ? `?${query}` : ""}`, { auth: false });
+  },
+
+  series() {
+    return request<ProductSeries[]>("/api/series", { auth: false });
+  },
+
+  getAdminCategories() {
+    return request<Category[]>("/api/admin/categories");
+  },
+
+  createAdminCategory(body: CategoryCreateRequest) {
+    return request<Category>("/api/admin/categories", { method: "POST", body });
+  },
+
+  updateAdminCategory(id: number, body: CategoryUpdateRequest) {
+    return request<Category>(`/api/admin/categories/${id}`, { method: "PATCH", body });
+  },
+
+  getAdminProductTypes() {
+    return request<ProductType[]>("/api/admin/product-types");
+  },
+
+  createAdminProductType(body: ProductTypeCreateRequest) {
+    return request<ProductType>("/api/admin/product-types", { method: "POST", body });
+  },
+
+  updateAdminProductType(id: number, body: ProductTypeUpdateRequest) {
+    return request<ProductType>(`/api/admin/product-types/${id}`, { method: "PATCH", body });
+  },
+
+  getAdminSeries() {
+    return request<Series[]>("/api/admin/series");
+  },
+
+  createAdminSeries(body: SeriesCreateRequest) {
+    return request<Series>("/api/admin/series", { method: "POST", body });
+  },
+
+  updateAdminSeries(id: number, body: SeriesUpdateRequest) {
+    return request<Series>(`/api/admin/series/${id}`, { method: "PATCH", body });
+  },
+
   adminProducts(params: AdminProductSearchParams = {}) {
     const searchParams = new URLSearchParams();
     if (params.keyword?.trim()) {
@@ -204,6 +276,15 @@ export const api = {
     }
     if (params.series?.trim()) {
       searchParams.set("series", params.series.trim());
+    }
+    if (params.categoryId !== undefined) {
+      searchParams.set("categoryId", String(params.categoryId));
+    }
+    if (params.productTypeId !== undefined) {
+      searchParams.set("productTypeId", String(params.productTypeId));
+    }
+    if (params.seriesId !== undefined) {
+      searchParams.set("seriesId", String(params.seriesId));
     }
     if (params.status) {
       searchParams.set("status", params.status);

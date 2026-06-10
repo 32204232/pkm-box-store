@@ -11,6 +11,45 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 - 출시 전 QA 기준 문서: `docs/release-qa-checklist.md`
 - 운영 준비 기준 문서: `docs/operations-readiness.md`
 
+## Current Status
+
+PKM Box Store는 한국어판 포켓몬 카드 박스 판매를 시작점으로 하되, Pokemon TCG commerce project로 확장할 수 있게 Catalog master data 구조로 전환 중이다.
+
+최근 완료:
+
+- Category, ProductType, Series master data 도메인 추가
+- 공통 Catalog 조회 API와 관리자 Catalog CUD API 추가
+- `/admin/catalog` 관리자 Catalog 관리 화면 추가
+- `/admin/products` 상품 등록/수정 폼의 Category/ProductType/Series select, Language, retailPrice 입력 연결
+- 기존 `products.category`, `products.series` 문자열 컬럼은 레거시 호환용으로 유지
+
+다음 우선 작업:
+
+- 사용자 상품 목록/상세 화면의 master data 기반 필터/표시 개선
+- 초기 상품 데이터의 catalog 참조값 정리
+- legacy category/series 문자열 컬럼 제거 여부는 별도 migration 단계에서 검토
+
+## Catalog/Product Structure
+
+- `Category`: 최상위 상품 분류 master data
+- `ProductType`: 특정 `Category`에 속하는 상품 유형
+- `Series`: 카테고리에 종속되지 않는 재사용 가능한 시리즈 master data
+- `Product`: `category_id`, `product_type_id`, `series_id` nullable 참조를 가진다.
+- `Product`: `ProductLanguage` enum과 `retailPrice`를 가진다.
+- `products.category`, `products.series` 문자열 컬럼은 기존 데이터/화면 호환을 위해 당분간 유지한다.
+- Product catalog 참조 검증은 `CatalogValidationService`에서 담당한다.
+
+현재 catalog 패키지 구조:
+
+```text
+backend/src/main/java/com/pkm/store/domain/catalog
+  ├── controller
+  ├── service
+  ├── category
+  ├── producttype
+  └── series
+```
+
 ## 현재 구현 완료 기능
 
 - 이메일 인증 기반 회원가입, 로그인, JWT 기반 인증
@@ -23,10 +62,19 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 - 상품 구매 가능 상태 검증
   - 장바구니 담기와 주문 생성 시 `ON_SALE` 상품만 허용
   - 요청 수량 기준 재고 부족 시 거부
+- Catalog master data
+  - Category, ProductType, Series 도메인 추가
+  - ProductType은 Category에 속하고, Series는 독립 master data로 재사용
+  - Product는 nullable `categoryId`, `productTypeId`, `seriesId` 참조와 `language`, `retailPrice` 보유
+  - 기존 `category`, `series` 문자열은 레거시 호환용으로 유지
 - 관리자 상품 등록, 수정, 숨김 처리
   - 관리자 상품 목록은 `HIDDEN` 상품까지 포함해 조회
-  - 상품명, 카테고리, 시리즈, 상태, 재고 부족 필터 지원
+  - 상품명, 카테고리, 상품 유형, 시리즈, 상태, 재고 부족 필터 지원
   - 상품 수정에서 `releaseDate`, `imageUrl`에 `null`을 보내면 기존 값 제거
+  - 상품 등록/수정 폼에서 Category, ProductType, Series master data select와 언어/정가 입력 지원
+- 관리자 카탈로그 관리 페이지
+  - `/admin/catalog`에서 Category, ProductType, Series 목록 조회, 생성, 수정, 숨김/활성화 처리
+  - 상품 등록/수정 폼은 master data select를 사용하되 기존 문자열 컬럼은 호환용으로 유지
 - 관리자 S3 이미지 업로드
   - 허용 확장자와 MIME 검증
   - 5MB 초과, 빈 파일, 확장자/MIME 불일치 거부
@@ -80,6 +128,7 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 - 도메인 구성:
   - `member`: 회원, 로그인, JWT 인증
   - `product`: 상품, 검색/필터/정렬, 관리자 상품 관리
+  - `catalog`: Category, ProductType, Series master data와 검증
   - `cart`: 장바구니
   - `deliveryaddress`: 배송지 관리
   - `order`: 주문 생성, 조회, 관리자 주문/배송 관리, 만료 처리
@@ -103,7 +152,8 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
   - Flyway 기반 SQL migration으로 신규 테이블/컬럼 변경 관리
   - 기본 운영 흐름은 `JPA_DDL_AUTO=validate`와 Flyway migration
   - `JPA_DDL_AUTO=update`는 로컬 긴급 확인용으로만 사용
-  - 현재 migration은 `admin_audit_logs`, `email_verifications`, `members` 기본 테이블 보강과 회원 프로필 필드 생성을 포함
+  - V4 migration은 `categories`, `product_types`, `series`와 products catalog 참조 컬럼, `language`, `retail_price`를 추가
+  - TiDB/MySQL 호환성을 위해 1차 catalog 참조는 FK 강제 대신 index와 애플리케이션 검증으로 시작
 
 ## 프론트엔드 구현 상태
 
@@ -128,13 +178,14 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
   - `/payments/fail`
 - 관리자 페이지:
   - `/admin`
+  - `/admin/catalog`
   - `/admin/products`
   - `/admin/orders`
   - `/admin/orders/[id]`
   - `/admin/audit-logs`
 - 공통:
   - `RequireAuth`로 로그인/관리자 접근 제어
-  - Header에서 관리자 대시보드, 상품, 주문, 감사 로그 링크 제공
+  - Header에서 관리자 대시보드, 카탈로그, 상품, 주문, 감사 로그 링크 제공
   - API 클라이언트는 `frontend/lib/api.ts`
   - 401 응답 시 토큰 삭제, `/login?reason=expired` 이동, 만료 안내 표시
   - 가격/날짜 포맷 유틸 사용
@@ -197,6 +248,8 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 
 - 결제 승인/취소 멱등성 강화
 - 상품 구매 가능 상태/재고 검증 강화
+- Catalog master data와 관리자 Catalog 관리 화면
+- 관리자 상품 등록/수정 폼의 Catalog select 전환
 - 관리자 상품 목록의 숨김 상품 포함 조회
 - 관리자 상품 수정 시 출시일/이미지 제거 정책 정리
 - 관리자 작업 감사 로그 저장 및 조회 페이지
@@ -220,6 +273,8 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 
 남은 보강 후보:
 
+- 사용자 상품 목록/상세의 master data 기반 필터와 표시 개선
+- 초기 상품 데이터의 `category_id`, `product_type_id`, `series_id` 정리
 - 운영 Toss 키 전환 및 키 보관 체계 확정
 - 운영/스테이징 Secret Manager 또는 배포 플랫폼 Secret 설정
 - S3 운영 버킷 권한 정책 최소화
@@ -230,13 +285,21 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 - 주문/결제 실패 재처리 정책
 - 민감 정보와 API 응답 과노출 방지 점검
 
+Deferred Features:
+
+- Kakao login
+- Apple login
+- single-card-specific fields such as `rarity`, `cardNumber`, `condition`, `grade`
+- CSV/JSON import
+- advanced inventory adjustment modal
+- user-facing home/products redesign
+- removal of legacy `category`/`series` string columns
+
 ## 다음 추천 작업 순서
 
-1. 이메일 인증 기능을 포함해 `docs/local-test-checklist.md` 기준으로 로컬 전체 흐름을 반복 검증한다.
-2. 출시 전에는 `docs/release-qa-checklist.md` 기준으로 회귀 QA를 수행한다.
-3. 새 엔티티/컬럼을 추가하는 작업부터는 Flyway migration SQL을 먼저 작성하고 `JPA_DDL_AUTO=validate`로 검증한다.
-4. 운영/스테이징 환경변수와 Secret 주입 방식을 확정한다.
-5. `docs/operations-readiness.md` 기준으로 스테이징 환경을 구성하고 Toss 결제 성공/실패/중복 승인/환불을 반복 검증한다.
-6. 실제 SMTP를 사용할 발신 계정, 발신 도메인 인증, 실패/반송 모니터링 방식을 정한다.
-7. 운영 S3 권한, CORS 도메인, Toss 키 전환 절차를 점검한다.
-8. 로그/모니터링과 결제 실패 재처리 정책을 정리한다.
+1. `docs/local-test-checklist.md` 기준으로 관리자 Catalog와 상품 등록/수정 흐름을 검증한다.
+2. 사용자 상품 목록/상세 화면에서 master data 기반 필터와 표시를 점진적으로 적용한다.
+3. 기존 상품 데이터에 `category_id`, `product_type_id`, `series_id`를 채우는 운영 절차를 정한다.
+4. 출시 전에는 `docs/release-qa-checklist.md` 기준으로 회귀 QA를 수행한다.
+5. `docs/operations-readiness.md` 기준으로 스테이징 환경과 Toss 결제 성공/실패/중복 승인/환불을 반복 검증한다.
+6. 운영/스테이징 Secret 주입 방식, S3 권한, SMTP 발신 도메인, 모니터링을 확정한다.

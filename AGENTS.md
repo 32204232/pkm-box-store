@@ -1,7 +1,9 @@
 # AGENTS.md
 
 ## Project
-PKM Box Store is a Korean Pokemon card box shopping mall.
+PKM Box Store is a Korean Pokemon TCG commerce project.
+
+The initial focus is sealed Pokemon card box products. Future expansion should consider single cards, promo cards, supplies, sleeves, playmats, and other Pokemon TCG products.
 
 - Backend: Spring Boot 3.3.x, Java 17, MySQL, JPA, JWT, Toss Payments, AWS S3, Flyway
 - Frontend: Next.js App Router, React 19, TypeScript
@@ -66,6 +68,24 @@ Keep Korean strings encoded as UTF-8. Do not introduce mojibake.
 - For schema changes, add Flyway migration SQL under `backend/src/main/resources/db/migration`.
 - Keep `JPA_DDL_AUTO=validate` as the default safe flow.
 - For H2-based tests, disable Flyway or use test-specific configuration instead of changing production migrations to fit H2.
+
+## Product Modeling
+- Prefer DB-managed master data for Category, ProductType, and Series.
+- ProductType belongs to Category; Series is reusable and not category-bound.
+- ProductLanguage and ProductStatus may remain enums when values are stable.
+- Do not hardcode category, product type, or series values in the frontend.
+- Keep legacy product `category`/`series` strings during the phased catalog transition.
+- `/admin/catalog` is the admin screen for Category, ProductType, and Series management.
+- Do not add single-card-specific fields unless explicitly requested.
+- Preserve cart, order, payment, and inventory flows when changing product schema.
+
+## Staging
+- Frontend: Vercel, root directory `frontend`.
+- Backend: Railway, root directory `backend`, Java version `RAILPACK_JDK_VERSION=17`.
+- DB: TiDB Cloud Starter.
+- `NEXT_PUBLIC_API_BASE_URL` must point to the deployed backend URL.
+- `CORS_ALLOWED_ORIGINS` is `https://pkm-box-store.vercel.app` without a trailing slash.
+- Update `docs/staging-deployment-notes.md` when staging setup or troubleshooting changes.
 
 ## Verification
 - Backend changes: run `.\gradlew.bat test --no-daemon` from `backend`.

@@ -4,6 +4,14 @@ import org.springframework.http.HttpStatus;
 
 public enum ErrorCode {
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다."),
+    CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "카테고리를 찾을 수 없습니다."),
+    PRODUCT_TYPE_NOT_FOUND(HttpStatus.NOT_FOUND, "상품 유형을 찾을 수 없습니다."),
+    SERIES_NOT_FOUND(HttpStatus.NOT_FOUND, "시리즈를 찾을 수 없습니다."),
+    PRODUCT_TYPE_CATEGORY_MISMATCH(HttpStatus.BAD_REQUEST, "상품 유형이 선택한 카테고리에 속하지 않습니다."),
+    DUPLICATE_CATEGORY_SLUG(HttpStatus.CONFLICT, "이미 사용 중인 카테고리 slug입니다."),
+    DUPLICATE_PRODUCT_TYPE_SLUG(HttpStatus.CONFLICT, "이미 사용 중인 상품 유형 slug입니다."),
+    DUPLICATE_SERIES_SLUG(HttpStatus.CONFLICT, "이미 사용 중인 시리즈 slug입니다."),
+    INVALID_CATALOG_REQUEST(HttpStatus.BAD_REQUEST, "올바르지 않은 카탈로그 요청입니다."),
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 가입된 이메일입니다."),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."),
     INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "비밀번호가 일치하지 않습니다."),

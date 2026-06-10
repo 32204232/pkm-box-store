@@ -34,12 +34,15 @@ public class ProductController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String series,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long productTypeId,
+            @RequestParam(required = false) Long seriesId,
             @RequestParam(required = false) ProductStatus status,
             @RequestParam(defaultValue = "false") boolean inStockOnly,
             @RequestParam(defaultValue = "latest") String sort
     ) {
         return ResponseEntity.ok(productService.getProducts(
-                new ProductSearchCondition(keyword, category, series, status, inStockOnly, sort)
+                new ProductSearchCondition(keyword, category, series, categoryId, productTypeId, seriesId, status, inStockOnly, sort)
         ));
     }
 
@@ -53,11 +56,14 @@ public class ProductController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String series,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long productTypeId,
+            @RequestParam(required = false) Long seriesId,
             @RequestParam(required = false) ProductStatus status,
             @RequestParam(defaultValue = "false") boolean lowStockOnly
     ) {
         return ResponseEntity.ok(productService.getAdminProducts(
-                new AdminProductSearchCondition(keyword, category, series, status, lowStockOnly)
+                new AdminProductSearchCondition(keyword, category, series, categoryId, productTypeId, seriesId, status, lowStockOnly)
         ));
     }
 

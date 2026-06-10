@@ -1,7 +1,9 @@
 # PKM Box Store Project Rules
 
 ## Project Overview
-PKM Box Store is a Pokemon card box shopping mall project.
+PKM Box Store is a Pokemon TCG commerce project.
+
+The initial focus is sealed Pokemon card box products. Design product, category, inventory, and admin workflows so the project can later expand to single cards, promo cards, supplies, sleeves, playmats, and other Pokemon TCG products without forcing a full rewrite.
 
 The goal is to build a real-commerce-like shopping mall with:
 - customer product browsing
@@ -9,6 +11,8 @@ The goal is to build a real-commerce-like shopping mall with:
 - Toss Payments
 - delivery address management
 - admin product/order operations
+- category, product type, and series management
+- inventory management
 - email verification and password reset
 - KREAM-inspired customer-facing UI
 
@@ -31,6 +35,13 @@ The goal is to build a real-commerce-like shopping mall with:
 - Never revert or overwrite unrelated user changes unless explicitly requested.
 - Do not commit real secrets.
 - Never commit `.env`, real API keys, DB passwords, Toss secret keys, AWS keys, SMTP passwords, private keys, or service account files.
+
+## Planning and Scope Rules
+- Before architecture changes, present analysis and a step-by-step plan before editing files.
+- Do not perform large refactors in one pass.
+- Before changing Product, Order, Payment, Inventory, or Auth behavior, explain the risk and affected flows.
+- For plan, direction, analysis, review, 검토, or 설계 requests, do not modify files.
+- For deployment-affecting changes, mention whether migration, environment variables, or redeploy steps are required.
 
 ## Verification Rules
 - After frontend changes, run:
@@ -125,6 +136,18 @@ The goal is to build a real-commerce-like shopping mall with:
 - Keep `JPA_DDL_AUTO=validate` as the default safe flow.
 - Do not rely on `JPA_DDL_AUTO=update` except for temporary local debugging.
 
+## Product Modeling Rules
+- Treat this project as a Pokemon TCG product commerce platform, not only a box store.
+- Prefer DB-managed master data for Category, ProductType, and Series.
+- Stable values such as ProductLanguage, ProductStatus, and MemberRole may remain enums.
+- Do not hardcode category, product type, or series values in the frontend.
+- ProductType must be able to belong to a Category.
+- Series must be reusable across multiple product groups.
+- Prefer deriving stock status from `stockQuantity` instead of storing it as a separate mutable field.
+- Do not add single-card-specific fields such as `rarity`, `cardNumber`, `condition`, or `grade` unless explicitly requested.
+- Do not abruptly remove existing string columns such as `category` and `series`; consider phased migrations.
+- Preserve cart, order, payment, and inventory flows when changing product structure.
+
 ## Database and Flyway Rules
 - Use Flyway for schema changes.
 - Add migration files under:
@@ -138,6 +161,21 @@ The goal is to build a real-commerce-like shopping mall with:
 - Keep Flyway enabled for runtime/local `bootRun` unless explicitly disabled.
 - For H2-based tests, disable Flyway or provide H2-compatible test configuration instead of changing production migrations to fit H2.
 - After adding migration, run backend tests.
+
+## Staging Deployment Rules
+- Frontend is deployed on Vercel.
+- Backend is deployed on Railway.
+- Database is TiDB Cloud Starter.
+- Frontend URL is `https://pkm-box-store.vercel.app`.
+- Railway backend root directory is `backend`.
+- Railway requires `RAILPACK_JDK_VERSION=17`.
+- Railway Start Command:
+  - `java $JAVA_OPTS -Dserver.port=$PORT -jar $(ls -1 build/libs/*.jar | grep -v plain | head -n 1)`
+- Vercel frontend root directory is `frontend`.
+- `NEXT_PUBLIC_API_BASE_URL` must point to the deployed backend URL, not localhost.
+- `CORS_ALLOWED_ORIGINS` must be `https://pkm-box-store.vercel.app` without a trailing slash.
+- After schema changes, confirm Flyway migration compatibility with MySQL/TiDB and `JPA_DDL_AUTO=validate`.
+- Do not put real TiDB, Toss, JWT, AWS, SMTP, or DB secrets in code or docs.
 
 ## Email/Auth Rules
 - Email verification codes and verification tokens must not be stored in plain text.
@@ -162,11 +200,17 @@ The goal is to build a real-commerce-like shopping mall with:
 - Admin actions that mutate important data should be audit logged when appropriate.
 - Admin UI should prioritize operational clarity, not KREAM customer styling.
 - Use tables, filters, clear status badges, and cautious destructive actions.
+- Use `/admin/catalog` for Category, ProductType, and Series master data management.
+- Admin product management must prioritize real operational convenience.
+- Product registration, image upload, category/product type/series selection, stock visibility, sales status control, and hidden status must be clear.
+- When admin features grow, split responsibilities into components or separate pages instead of placing everything on one page.
+- If inventory history matters, separate stock adjustment from general product editing.
 
 ## Documentation Rules
 - Update `docs/api-spec.md` when APIs change.
 - Update `docs/local-test-checklist.md` when setup steps or user flows change.
 - Update `docs/project-status.md` only for meaningful feature/status changes.
+- Update `docs/staging-deployment-notes.md` when deployment settings, Railway/Vercel/TiDB setup, or staging troubleshooting changes.
 - Update `.env.example` when new environment variables are added.
 - Do not document real secrets.
 

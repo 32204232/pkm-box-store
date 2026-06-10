@@ -1,5 +1,6 @@
 package com.pkm.store.domain.product.dto;
 
+import com.pkm.store.domain.product.type.ProductLanguage;
 import com.pkm.store.domain.product.type.ProductStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -20,6 +21,9 @@ public record ProductCreateRequest(
         @PositiveOrZero
         BigDecimal price,
 
+        @PositiveOrZero
+        BigDecimal retailPrice,
+
         @NotBlank
         @Size(max = 50)
         String category,
@@ -27,6 +31,14 @@ public record ProductCreateRequest(
         @NotBlank
         @Size(max = 100)
         String series,
+
+        Long categoryId,
+
+        Long productTypeId,
+
+        Long seriesId,
+
+        ProductLanguage language,
 
         LocalDate releaseDate,
 
@@ -39,4 +51,18 @@ public record ProductCreateRequest(
 
         ProductStatus status
 ) {
+
+    public ProductCreateRequest(
+            String name,
+            String description,
+            BigDecimal price,
+            String category,
+            String series,
+            LocalDate releaseDate,
+            Integer stockQuantity,
+            String imageUrl,
+            ProductStatus status
+    ) {
+        this(name, description, price, null, category, series, null, null, null, null, releaseDate, stockQuantity, imageUrl, status);
+    }
 }

@@ -6,6 +6,9 @@ public record AdminProductSearchCondition(
         String keyword,
         String category,
         String series,
+        Long categoryId,
+        Long productTypeId,
+        Long seriesId,
         ProductStatus status,
         boolean lowStockOnly
 ) {
@@ -14,6 +17,16 @@ public record AdminProductSearchCondition(
         keyword = blankToNull(keyword);
         category = blankToNull(category);
         series = blankToNull(series);
+    }
+
+    public AdminProductSearchCondition(
+            String keyword,
+            String category,
+            String series,
+            ProductStatus status,
+            boolean lowStockOnly
+    ) {
+        this(keyword, category, series, null, null, null, status, lowStockOnly);
     }
 
     private static String blankToNull(String value) {

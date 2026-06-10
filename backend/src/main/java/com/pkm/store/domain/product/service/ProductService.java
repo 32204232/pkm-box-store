@@ -3,6 +3,10 @@ package com.pkm.store.domain.product.service;
 import com.pkm.store.domain.adminlog.service.AdminAuditLogService;
 import com.pkm.store.domain.adminlog.type.AdminAuditActionType;
 import com.pkm.store.domain.adminlog.type.AdminAuditTargetType;
+import com.pkm.store.domain.catalog.category.entity.Category;
+import com.pkm.store.domain.catalog.producttype.entity.ProductType;
+import com.pkm.store.domain.catalog.series.entity.Series;
+import com.pkm.store.domain.catalog.service.CatalogValidationService;
 import com.pkm.store.domain.product.dto.AdminProductSearchCondition;
 import com.pkm.store.domain.product.dto.ProductCreateRequest;
 import com.pkm.store.domain.product.dto.ProductResponse;
@@ -27,10 +31,11 @@ public class ProductService {
     private static final int LOW_STOCK_THRESHOLD = 5;
 
     private final ProductRepository productRepository;
+    private final CatalogValidationService catalogValidationService;
     private final AdminAuditLogService adminAuditLogService;
 
     public List<ProductResponse> getProducts() {
-        return getProducts(new ProductSearchCondition(null, null, null, null, false, "latest"));
+        return getProducts(new ProductSearchCondition(null, null, null, null, null, null, null, false, "latest"));
     }
 
     public List<ProductResponse> getProducts(ProductSearchCondition condition) {
@@ -38,6 +43,9 @@ public class ProductService {
                         condition.keyword(),
                         condition.category(),
                         condition.series(),
+                        condition.categoryId(),
+                        condition.productTypeId(),
+                        condition.seriesId(),
                         condition.status(),
                         condition.inStockOnly(),
                         ProductStatus.HIDDEN,
@@ -49,7 +57,7 @@ public class ProductService {
     }
 
     public List<ProductResponse> getAdminProducts() {
-        return getAdminProducts(new AdminProductSearchCondition(null, null, null, null, false));
+        return getAdminProducts(new AdminProductSearchCondition(null, null, null, null, null, null, null, false));
     }
 
     public List<ProductResponse> getAdminProducts(AdminProductSearchCondition condition) {
@@ -57,6 +65,9 @@ public class ProductService {
                         condition.keyword(),
                         condition.category(),
                         condition.series(),
+                        condition.categoryId(),
+                        condition.productTypeId(),
+                        condition.seriesId(),
                         condition.status(),
                         condition.lowStockOnly(),
                         LOW_STOCK_THRESHOLD,
@@ -75,12 +86,21 @@ public class ProductService {
 
     @Transactional
     public ProductResponse createProduct(ProductCreateRequest request) {
+        Category categoryMaster = catalogValidationService.resolveCategory(request.categoryId());
+        ProductType productType = catalogValidationService.resolveProductType(request.productTypeId());
+        Series seriesMaster = catalogValidationService.resolveSeries(request.seriesId());
+        categoryMaster = catalogValidationService.resolveCategoryForProduct(categoryMaster, productType);
         Product product = Product.create(
                 request.name(),
                 request.description(),
                 request.price(),
+                request.retailPrice(),
                 request.category(),
                 request.series(),
+                categoryMaster,
+                productType,
+                seriesMaster,
+                request.language(),
                 request.releaseDate(),
                 request.stockQuantity(),
                 request.imageUrl(),
@@ -100,12 +120,21 @@ public class ProductService {
     public ProductResponse updateProduct(Long id, ProductUpdateRequest request) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+        Category categoryMaster = catalogValidationService.resolveCategory(request.categoryId());
+        ProductType productType = catalogValidationService.resolveProductType(request.productTypeId());
+        Series seriesMaster = catalogValidationService.resolveSeries(request.seriesId());
+        categoryMaster = catalogValidationService.resolveCategoryForProduct(categoryMaster, productType);
         product.update(
                 request.name(),
                 request.description(),
                 request.price(),
+                request.retailPrice(),
                 request.category(),
                 request.series(),
+                categoryMaster,
+                productType,
+                seriesMaster,
+                request.language(),
                 request.releaseDate(),
                 request.stockQuantity(),
                 request.imageUrl(),

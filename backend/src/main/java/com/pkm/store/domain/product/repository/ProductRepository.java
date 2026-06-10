@@ -26,12 +26,18 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("""
             select p
             from Product p
+            left join p.categoryMaster cm
+            left join p.productType pt
+            left join p.seriesMaster sm
             where p.status <> :hiddenStatus
               and (:keyword is null
                    or lower(p.name) like lower(concat('%', :keyword, '%'))
                    or lower(p.description) like lower(concat('%', :keyword, '%')))
               and (:category is null or p.category = :category)
               and (:series is null or p.series = :series)
+              and (:categoryId is null or cm.id = :categoryId)
+              and (:productTypeId is null or pt.id = :productTypeId)
+              and (:seriesId is null or sm.id = :seriesId)
               and (:status is null or p.status = :status)
               and (:inStockOnly = false or p.stockQuantity > 0)
             """)
@@ -39,6 +45,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("keyword") String keyword,
             @Param("category") String category,
             @Param("series") String series,
+            @Param("categoryId") Long categoryId,
+            @Param("productTypeId") Long productTypeId,
+            @Param("seriesId") Long seriesId,
             @Param("status") ProductStatus status,
             @Param("inStockOnly") boolean inStockOnly,
             @Param("hiddenStatus") ProductStatus hiddenStatus,
@@ -48,11 +57,17 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("""
             select p
             from Product p
+            left join p.categoryMaster cm
+            left join p.productType pt
+            left join p.seriesMaster sm
             where (:keyword is null
                    or lower(p.name) like lower(concat('%', :keyword, '%'))
                    or lower(p.description) like lower(concat('%', :keyword, '%')))
               and (:category is null or p.category = :category)
               and (:series is null or p.series = :series)
+              and (:categoryId is null or cm.id = :categoryId)
+              and (:productTypeId is null or pt.id = :productTypeId)
+              and (:seriesId is null or sm.id = :seriesId)
               and (:status is null or p.status = :status)
               and (:lowStockOnly = false or p.stockQuantity <= :lowStockThreshold)
             """)
@@ -60,6 +75,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("keyword") String keyword,
             @Param("category") String category,
             @Param("series") String series,
+            @Param("categoryId") Long categoryId,
+            @Param("productTypeId") Long productTypeId,
+            @Param("seriesId") Long seriesId,
             @Param("status") ProductStatus status,
             @Param("lowStockOnly") boolean lowStockOnly,
             @Param("lowStockThreshold") int lowStockThreshold,

@@ -27,8 +27,8 @@ NEXT_PUBLIC_TOSS_CLIENT_KEY=<TOSS_CLIENT_KEY>
 ```env
 RAILPACK_JDK_VERSION=17
 SPRING_PROFILES_ACTIVE=prod
-DB_URL=jdbc:mysql://gateway01.ap-northeast-1.prod.aws.tidbcloud.com:4000/pkm_box_store?useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-DB_USERNAME=3KNVzUm4j7bNZGT.root
+DB_URL=<TIDB_MYSQL_JDBC_URL>
+DB_USERNAME=<DB_USERNAME>
 DB_PASSWORD=<DB_PASSWORD>
 CORS_ALLOWED_ORIGINS=https://pkm-box-store.vercel.app
 JWT_SECRET=<JWT_SECRET>
@@ -117,7 +117,7 @@ Value: DB_URL=jdbc:mysql://...
 
 ```text
 Key: DB_URL
-Value: jdbc:mysql://gateway01.ap-northeast-1.prod.aws.tidbcloud.com:4000/pkm_box_store?useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+Value: jdbc:mysql://<TIDB_HOST>:4000/pkm_box_store?useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
 ```
 
 해결:
@@ -198,6 +198,7 @@ https://pkm-box-store-production.up.railway.app/api/products
 - `backend/src/main/resources/application-prod.yml`
 - `backend/.env.example`
 - `backend/src/main/resources/db/migration/V3__create_catalog_order_cart_payment_tables.sql`
+- `backend/src/main/resources/db/migration/V4__add_catalog_master_tables.sql`
 
 `application.yml`:
 - 공통 설정 및 profile group을 정리했다.
@@ -219,6 +220,22 @@ https://pkm-box-store-production.up.railway.app/api/products
 `V3__create_catalog_order_cart_payment_tables.sql`:
 - 쇼핑몰 핵심 테이블을 생성하는 Flyway migration이다.
 - Hibernate validate 전에 필요한 테이블이 생성되도록 한다.
+
+`V4__add_catalog_master_tables.sql`:
+- Pokemon TCG 상품 전문몰 확장을 위한 catalog master 테이블을 추가한다.
+- 추가 테이블: `categories`, `product_types`, `series`
+- 추가 컬럼: `products.category_id`, `products.product_type_id`, `products.series_id`, `products.language`, `products.retail_price`
+- 기존 `products.category`, `products.series` 문자열 컬럼은 호환을 위해 유지한다.
+- 1차 단계에서는 TiDB/MySQL 호환성을 우선해 FK 제약 대신 index와 애플리케이션 검증 중심으로 시작한다.
+- Railway 재배포 시 Flyway가 V4 migration을 적용하고 `JPA_DDL_AUTO=validate`를 통과해야 한다.
+
+## 5-1. Catalog migration 배포 확인
+
+- V4 migration 적용 후 `categories`, `product_types`, `series` 테이블이 생성되었는지 확인한다.
+- `products` 테이블에 nullable catalog 참조 컬럼과 `language`, `retail_price`가 추가되었는지 확인한다.
+- 기존 `products.category`, `products.series` 문자열 컬럼은 제거하지 않는다.
+- TiDB/MySQL 호환성을 우선해 FK 강제 없이 index + 애플리케이션 검증으로 시작한다.
+- 관리자 `/admin/catalog`와 `/admin/products`에서 Catalog master data 조회/저장이 정상인지 확인한다.
 
 ## 6. 로컬 실행과 Railway 실행 구분
 
@@ -256,6 +273,7 @@ java $JAVA_OPTS -Dserver.port=$PORT -jar $(ls -1 build/libs/*.jar | grep -v plai
 - Railway 백엔드 실행 성공
 - TiDB 연결 성공
 - Flyway V3 migration 적용
+- Flyway V4 migration은 catalog master 배포 시 추가 확인 필요
 - `/api/products` 요청 시 `[]` 응답 확인
 - CORS 수정 후 회원가입 성공
 - 로그인 및 기본 기능 동작 확인

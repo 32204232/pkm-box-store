@@ -3,6 +3,7 @@ package com.pkm.store.domain.product.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pkm.store.domain.adminlog.service.AdminAuditLogService;
+import com.pkm.store.domain.catalog.service.CatalogValidationService;
 import com.pkm.store.domain.product.dto.ProductResponse;
 import com.pkm.store.domain.product.dto.ProductSearchCondition;
 import com.pkm.store.domain.product.entity.Product;
@@ -32,6 +33,9 @@ class ProductRepositorySearchTest {
 
     @MockBean
     private AdminAuditLogService adminAuditLogService;
+
+    @MockBean
+    private CatalogValidationService catalogValidationService;
 
     @Test
     void searchProductsByKeywordInName() {
