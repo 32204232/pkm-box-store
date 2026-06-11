@@ -225,6 +225,17 @@ class OrderServiceTest {
     }
 
     @Test
+    void getMyOrderThrowsOrderNotFoundWhenOrderBelongsToAnotherMember() {
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.getMyOrder(1L))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.ORDER_NOT_FOUND);
+    }
+
+    @Test
     void createOrderFromCartSucceedsWithoutDeliveryAddressId() {
         Product product = createProduct(ProductStatus.ON_SALE, 10);
         CartItem cartItem = CartItem.create(member, product, 1);

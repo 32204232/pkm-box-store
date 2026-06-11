@@ -4,11 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.pkm.store.domain.adminlog.service.AdminAuditLogService;
 import com.pkm.store.domain.adminlog.type.AdminAuditActionType;
 import com.pkm.store.domain.adminlog.type.AdminAuditTargetType;
+import com.pkm.store.domain.catalog.category.entity.Category;
+import com.pkm.store.domain.catalog.producttype.entity.ProductType;
 import com.pkm.store.domain.catalog.service.CatalogValidationService;
 import com.pkm.store.domain.product.dto.ProductCreateRequest;
 import com.pkm.store.domain.product.dto.ProductResponse;
@@ -18,6 +21,7 @@ import com.pkm.store.domain.product.entity.Product;
 import com.pkm.store.domain.product.repository.ProductRepository;
 import com.pkm.store.domain.product.type.ProductStatus;
 import com.pkm.store.global.exception.BusinessException;
+import com.pkm.store.global.exception.ErrorCode;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -70,6 +74,38 @@ class ProductServiceTest {
         assertThat(response.stockQuantity()).isEqualTo(20);
         assertThat(response.status()).isEqualTo(ProductStatus.ON_SALE);
         verify(productRepository).save(any(Product.class));
+    }
+
+    @Test
+    void createProductThrowsWhenProductTypeDoesNotBelongToCategory() {
+        Category category = Category.create("Sealed Product", "sealed-product", null, 10, true);
+        ProductType productType = ProductType.create(category, "Expansion Box", "expansion-box", null, 10, true);
+        ProductCreateRequest request = new ProductCreateRequest(
+                "포켓몬 카드 박스",
+                "한국어판 포켓몬 카드 박스",
+                BigDecimal.valueOf(30000),
+                null,
+                "부스터 박스",
+                "스칼렛&바이올렛",
+                2L,
+                1L,
+                null,
+                null,
+                LocalDate.of(2026, 1, 1),
+                20,
+                "https://example.com/product.jpg",
+                ProductStatus.ON_SALE
+        );
+        given(catalogValidationService.resolveCategory(2L)).willReturn(category);
+        given(catalogValidationService.resolveProductType(1L)).willReturn(productType);
+        given(catalogValidationService.resolveCategoryForProduct(category, productType))
+                .willThrow(new BusinessException(ErrorCode.PRODUCT_TYPE_CATEGORY_MISMATCH));
+
+        assertThatThrownBy(() -> productService.createProduct(request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.PRODUCT_TYPE_CATEGORY_MISMATCH);
+        verify(productRepository, never()).save(any(Product.class));
     }
 
     @Test

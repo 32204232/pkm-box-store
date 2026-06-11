@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.pkm.store.domain.deliveryaddress.dto.DeliveryAddressCreateRequest;
@@ -125,6 +126,29 @@ class DeliveryAddressServiceTest {
     }
 
     @Test
+    void updateOtherMembersAddressThrowsAddressNotFound() {
+        givenCurrentMember();
+        given(deliveryAddressRepository.findByIdAndMember(1L, member)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> deliveryAddressService.updateAddress(1L, createUpdateRequest()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.ADDRESS_NOT_FOUND);
+    }
+
+    @Test
+    void deleteOtherMembersAddressThrowsAddressNotFound() {
+        givenCurrentMember();
+        given(deliveryAddressRepository.findByIdAndMember(1L, member)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> deliveryAddressService.deleteAddress(1L))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.ADDRESS_NOT_FOUND);
+        verify(deliveryAddressRepository, never()).delete(any(DeliveryAddress.class));
+    }
+
+    @Test
     void updateAddressSucceeds() {
         DeliveryAddress address = createAddress(false);
         givenCurrentMember();
@@ -175,6 +199,18 @@ class DeliveryAddressServiceTest {
                 "Seoul Gangnam",
                 "Apt 101",
                 isDefault
+        );
+    }
+
+    private DeliveryAddressUpdateRequest createUpdateRequest() {
+        return new DeliveryAddressUpdateRequest(
+                "Office",
+                "Updated Receiver",
+                "010-9999-9999",
+                "12345",
+                "Busan",
+                "101",
+                false
         );
     }
 

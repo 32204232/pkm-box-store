@@ -145,6 +145,19 @@ class CartServiceTest {
     }
 
     @Test
+    void addItemThrowsBusinessExceptionWhenStockIsZero() {
+        Product product = createProduct(ProductStatus.ON_SALE, 0);
+        given(memberRepository.findByEmail(MEMBER_EMAIL)).willReturn(Optional.of(member));
+        given(productRepository.findById(1L)).willReturn(Optional.of(product));
+
+        assertThatThrownBy(() -> cartService.addItem(new CartItemAddRequest(1L, 1)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.OUT_OF_STOCK);
+        verify(cartItemRepository, never()).save(any(CartItem.class));
+    }
+
+    @Test
     void addItemThrowsBusinessExceptionWhenExistingCartQuantityWouldExceedStock() {
         Product product = createProduct(ProductStatus.ON_SALE, 4);
         CartItem cartItem = CartItem.create(member, product, 2);

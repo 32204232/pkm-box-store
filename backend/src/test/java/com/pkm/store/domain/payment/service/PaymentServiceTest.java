@@ -129,8 +129,11 @@ class PaymentServiceTest {
         given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(order));
 
         assertThatThrownBy(() -> paymentService.confirmPayment(createRequest(order, BigDecimal.valueOf(10000))))
-                .isInstanceOf(BusinessException.class);
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         verify(paymentClient, never()).approve(any(PaymentApproveCommand.class));
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAYMENT_PENDING);
     }
 
     @Test
@@ -206,6 +209,49 @@ class PaymentServiceTest {
         assertThatThrownBy(() -> paymentService.confirmPayment(request))
                 .isInstanceOf(BusinessException.class);
         verify(paymentClient, never()).approve(any(PaymentApproveCommand.class));
+    }
+
+    @Test
+    void confirmPaymentThrowsOrderNotFoundWhenOrderBelongsToAnotherMember() {
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.empty());
+
+        PaymentConfirmRequest request = new PaymentConfirmRequest(
+                1L,
+                PaymentProvider.TOSS,
+                "payment-key",
+                "provider-order-id",
+                BigDecimal.valueOf(30000)
+        );
+
+        assertThatThrownBy(() -> paymentService.confirmPayment(request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.ORDER_NOT_FOUND);
+        verify(paymentClient, never()).approve(any(PaymentApproveCommand.class));
+    }
+
+    @Test
+    void confirmPaymentThrowsWhenProviderOrderIdBelongsToDifferentOrder() {
+        Order orderA = createOrder(OrderStatus.PAYMENT_PENDING);
+        Order orderB = createOrder(OrderStatus.PAYMENT_PENDING);
+        givenCurrentMember();
+        given(orderRepository.findByIdAndMember(1L, member)).willReturn(Optional.of(orderA));
+
+        PaymentConfirmRequest request = new PaymentConfirmRequest(
+                1L,
+                PaymentProvider.TOSS,
+                "payment-key",
+                orderB.getOrderUid(),
+                BigDecimal.valueOf(30000)
+        );
+
+        assertThatThrownBy(() -> paymentService.confirmPayment(request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.PAYMENT_ORDER_MISMATCH);
+        verify(paymentClient, never()).approve(any(PaymentApproveCommand.class));
+        assertThat(orderA.getStatus()).isEqualTo(OrderStatus.PAYMENT_PENDING);
     }
 
     @Test
