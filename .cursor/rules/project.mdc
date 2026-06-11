@@ -35,6 +35,11 @@ The goal is to build a real-commerce-like shopping mall with:
 - Never revert or overwrite unrelated user changes unless explicitly requested.
 - Do not commit real secrets.
 - Never commit `.env`, real API keys, DB passwords, Toss secret keys, AWS keys, SMTP passwords, private keys, or service account files.
+- For auth, authorization, order, payment, file upload, CORS, secret, or dependency changes, check the security docs before editing:
+  - `docs/security-requirements.md`
+  - `docs/threat-model.md`
+  - `docs/security-test-checklist.md`
+  - `docs/sbom.md`
 
 ## Planning and Scope Rules
 - Before architecture changes, present analysis and a step-by-step plan before editing files.
@@ -213,6 +218,8 @@ The goal is to build a real-commerce-like shopping mall with:
 - Update `docs/staging-deployment-notes.md` when deployment settings, Railway/Vercel/TiDB setup, or staging troubleshooting changes.
 - Update `.env.example` when new environment variables are added.
 - Do not document real secrets.
+- Update `docs/security-requirements.md`, `docs/threat-model.md`, and `docs/security-test-checklist.md` when security-sensitive behavior changes.
+- Update `docs/sbom.md` when dependencies change.
 
 ## When Unsure
 - First explain the tradeoff.

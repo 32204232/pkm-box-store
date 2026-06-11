@@ -15,6 +15,7 @@ For the full project rules, follow `.cursor/rules/project.mdc`. This file is a s
 - For API changes and frontend API usage, check `docs/api-spec.md`.
 - For local end-to-end test flow, check `docs/local-test-checklist.md`.
 - For major feature/status context, check `docs/project-status.md`.
+- For security-sensitive changes, check `docs/security-requirements.md`, `docs/threat-model.md`, and `docs/security-test-checklist.md`.
 
 ## Core Rules
 - Always inspect existing files before editing.
@@ -40,6 +41,8 @@ Do not commit secrets or credentials, including:
 - service account files
 
 Keep Korean strings encoded as UTF-8. Do not introduce mojibake.
+
+When dependencies change, update `docs/sbom.md`. Never record real secret values in code or docs.
 
 ## Frontend Rules
 - Use existing `frontend/lib/api.ts`.

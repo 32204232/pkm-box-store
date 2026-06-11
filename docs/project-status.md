@@ -22,6 +22,16 @@ PKM Box Store는 한국어판 포켓몬 카드 박스 판매를 시작점으로 
 - `/admin/catalog` 관리자 Catalog 관리 화면 추가
 - `/admin/products` 상품 등록/수정 폼의 Category/ProductType/Series select, Language, retailPrice 입력 연결
 - 기존 `products.category`, `products.series` 문자열 컬럼은 레거시 호환용으로 유지
+- Secure SDLC lightweight docs added
+- Security requirements documented
+- Threat model documented
+- Security test checklist added
+- SBOM-lite documented
+- Security gap backlog added
+- P0 보안 테스트 1차 추가
+  - 관리자 catalog/product API 권한, 주문/배송지 소유자 접근 제어, 결제 amount/providerOrderId 조작 방지, 숨김 상품/재고/catalog 검증, CORS/secret 1차 점검을 자동화 테스트와 명령 점검으로 확인
+- P0 보안 자동화 테스트 설계 문서 추가
+  - `docs/security-test-plan.md`에 테스트 대상 API, 테스트 방식, mock 전략, 파일 구조, 실행 순서를 정리
 
 다음 우선 작업:
 
