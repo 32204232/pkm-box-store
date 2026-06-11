@@ -8,6 +8,7 @@ PKM Box Store는 한국어판 포켓몬 카드 박스를 판매하는 쇼핑몰 
 - Frontend: Next.js App Router, React 19, TypeScript
 - API 기준 문서: `docs/api-spec.md`
 - 로컬 테스트 기준 문서: `docs/local-test-checklist.md`
+- AI 개발용 프로젝트 지도: `docs/ai-development-guide.md`
 - 출시 전 QA 기준 문서: `docs/release-qa-checklist.md`
 - 운영 준비 기준 문서: `docs/operations-readiness.md`
 
@@ -32,6 +33,8 @@ PKM Box Store는 한국어판 포켓몬 카드 박스 판매를 시작점으로 
   - 관리자 catalog/product API 권한, 주문/배송지 소유자 접근 제어, 결제 amount/providerOrderId 조작 방지, 숨김 상품/재고/catalog 검증, CORS/secret 1차 점검을 자동화 테스트와 명령 점검으로 확인
 - P0 보안 자동화 테스트 설계 문서 추가
   - `docs/security-test-plan.md`에 테스트 대상 API, 테스트 방식, mock 전략, 파일 구조, 실행 순서를 정리
+- AI 개발용 프로젝트 지도 문서 추가
+  - `docs/ai-development-guide.md`에 프로젝트 구조, 주요 문서 역할, 구현 상태, 보안 문서, 다음 작업 방향을 중앙 요약으로 정리
 
 다음 우선 작업:
 

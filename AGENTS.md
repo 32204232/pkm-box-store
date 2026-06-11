@@ -12,6 +12,7 @@ The initial focus is sealed Pokemon card box products. Future expansion should c
 For the full project rules, follow `.cursor/rules/project.mdc`. This file is a short always-loaded summary.
 
 ## References
+- For a high-level project map, check `docs/ai-development-guide.md`.
 - For API changes and frontend API usage, check `docs/api-spec.md`.
 - For local end-to-end test flow, check `docs/local-test-checklist.md`.
 - For major feature/status context, check `docs/project-status.md`.
