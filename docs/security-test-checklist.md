@@ -77,14 +77,15 @@
 
 ## File Upload Tests
 
-- [ ] Critical: ROLE_MEMBER로 이미지 업로드 API 호출 시 403인지 확인
-- [ ] Critical: 허용되지 않은 확장자 파일이 거부되는지 확인
-- [ ] Critical: MIME 타입이 허용 목록에 없으면 거부되는지 확인
-- [ ] Critical: 확장자와 MIME 타입이 불일치하면 거부되는지 확인
-- [ ] Critical: 5MB 초과 파일이 거부되는지 확인
-- [ ] Important: 빈 파일과 확장자가 없는 파일이 거부되는지 확인
-- [ ] Important: 업로드된 S3 key가 원본 파일명을 사용하지 않고 `products/{uuid}.{extension}`인지 확인
-- [ ] Important: S3 bucket public access/IAM 권한이 최소 권한인지 확인
+- [x] Critical: ROLE_MEMBER로 이미지 업로드 API 호출 시 403인지 확인 - Automated: `ImageControllerSecurityTest`
+- [x] Critical: 허용되지 않은 확장자 파일이 거부되는지 확인 - Automated: `S3ImageServiceTest`
+- [x] Critical: MIME 타입이 허용 목록에 없으면 거부되는지 확인 - Automated: `S3ImageServiceTest`
+- [x] Critical: 확장자와 MIME 타입이 불일치하면 거부되는지 확인 - Automated: `S3ImageServiceTest`
+- [x] Critical: 5MB 초과 파일이 거부되는지 확인 - Automated: `S3ImageServiceTest`
+- [x] Important: 빈 파일과 확장자가 없는 파일이 거부되는지 확인 - Automated: `S3ImageServiceTest`
+- [x] Important: 업로드된 S3 key가 원본 파일명을 사용하지 않고 `products/{uuid}.{extension}`인지 확인 - Automated: `S3ImageServiceTest`; actual object access는 Manual
+- [ ] Important: S3 bucket public access/IAM 권한이 최소 권한인지 확인 - Manual Needed
+- [ ] Important: staging/prod 업로드 설정과 실제 배포 환경 업로드 동작 확인 - Needs Verification
 - [ ] Optional: 파일 내용 magic byte 검사 또는 malware scan 도입 필요 여부를 검토
 
 ## CORS/Deployment Tests
